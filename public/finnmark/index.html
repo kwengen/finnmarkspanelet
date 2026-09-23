@@ -1,0 +1,2871 @@
+<title>Finnmarkspanelet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+/* ── Tokens ──────────────────────────────────────────────────────────────
+   Identitet: Finnmark Arbeiderparti. Ap-rød er merkefargen for grensesnittet;
+   nøytralene har en svak varm bias mot den, slik at gråtonene leses som valgt.
+   Seriefargene for kommuner er den validerte kategoripaletten og holdes bevisst
+   utenfor merkefargen — en kommunelinje skal aldri kunne forveksles med «Ap».
+   ⚠️ Ap-rødtonene under bør bekreftes mot partiets grafiske profil.
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+
+  --plane:        #f7f4f4;
+  --surface:      #fefcfc;
+  --surface-2:    #f1ebec;
+  --ink:          #191113;
+  --ink-2:        #5a4c4e;
+  --ink-muted:    #8a7a7c;
+  --grid:         #eae2e3;
+  --axis:         #cfc3c4;
+  --rule:         rgba(25, 17, 19, 0.10);
+  --rule-strong:  rgba(25, 17, 19, 0.18);
+
+  --accent:       #e8112d;   /* Ap-rød: flater, aktive tilstander, fokus */
+  --accent-text:  #b80a20;   /* mørkere variant der tekstkontrast må holde */
+  --accent-soft:  #fde8ea;
+  --accent-ink:   #ffffff;
+
+  --warn:         #fab219;
+  --warn-ink:     #6b4a00;
+  --warn-soft:    #fdf3dc;
+
+  /* Kategoripalett — validert sett, lyse steg */
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+  --s5: #e87ba4; --s6: #008300; --s7: #4a3aa7; --s8: #e34948;
+
+  /* Ekstra partifarger for mandatfordelingen — regionale lister utenfor de
+     åtte faste (Nordkalottfolket, Samelista, INP m.fl.). Validert sammen med
+     s1–s8 og accent via dataviz-skillets validate_palette.js. */
+  --p-nordk: #0891b2; --p-same: #c026d3; --p-inp: #92400e; --p-mdg: #16a34a;
+
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --r: 3px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --plane:        #120e0f;
+    --surface:      #1c1718;
+    --surface-2:    #251f20;
+    --ink:          #f7f2f2;
+    --ink-2:        #bfb2b3;
+    --ink-muted:    #8a7a7c;
+    --grid:         #2b2425;
+    --axis:         #453a3c;
+    --rule:         rgba(247, 242, 242, 0.11);
+    --rule-strong:  rgba(247, 242, 242, 0.20);
+
+    --accent:       #ff4f63;
+    --accent-text:  #ff8090;
+    --accent-soft:  #3a1418;
+    --accent-ink:   #1c1718;
+
+    --warn:         #fab219;
+    --warn-ink:     #fdd77a;
+    --warn-soft:    #2a2110;
+
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+
+    --p-nordk: #1592a3; --p-same: #d946ef; --p-inp: #b45309; --p-mdg: #16a34a;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --plane:        #120e0f;
+  --surface:      #1c1718;
+  --surface-2:    #251f20;
+  --ink:          #f7f2f2;
+  --ink-2:        #bfb2b3;
+  --ink-muted:    #8a7a7c;
+  --grid:         #2b2425;
+  --axis:         #453a3c;
+  --rule:         rgba(247, 242, 242, 0.11);
+  --rule-strong:  rgba(247, 242, 242, 0.20);
+
+  --accent:       #ff4f63;
+  --accent-text:  #ff8090;
+  --accent-soft:  #3a1418;
+  --accent-ink:   #1c1718;
+
+  --warn:         #fab219;
+  --warn-ink:     #fdd77a;
+  --warn-soft:    #2a2110;
+
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+  --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+
+  --p-nordk: #1592a3; --p-same: #d946ef; --p-inp: #b45309; --p-mdg: #16a34a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--plane);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.masthead {
+  padding: 14px 20px 14px;
+  background: var(--surface);
+  border-top: 3px solid var(--accent);
+  border-bottom: 1px solid var(--rule);
+}
+.masthead .eyebrow {
+  display: block;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--accent-text);
+  margin-bottom: 3px;
+}
+.masthead .titlerow {
+  display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+}
+.masthead h1 {
+  margin: 0;
+  font-size: 19px; font-weight: 600; letter-spacing: -0.015em;
+}
+.masthead .sub {
+  color: var(--ink-muted); font-size: 13px;
+}
+
+/* ── Control rail ───────────────────────────────────────────────────────── */
+.rail {
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+  padding: 14px 20px 16px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.rail-row { display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-start; }
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field > label, .field-label {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--ink-muted);
+}
+
+.chips { display: flex; flex-wrap: wrap; gap: 5px; max-width: 780px; }
+.chip {
+  font: inherit; font-size: 12.5px;
+  padding: 3px 9px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r);
+  background: transparent; color: var(--ink-2);
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.chip:hover { background: var(--surface-2); color: var(--ink); }
+.chip[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--ink);
+  font-weight: 500;
+}
+.chip .swatch {
+  width: 9px; height: 9px; border-radius: 2px; flex: none;
+  background: var(--sw, transparent);
+  box-shadow: 0 0 0 1px var(--surface);
+}
+.chip[aria-pressed="false"] .swatch { opacity: 0; }
+.chip.is-total[aria-pressed="true"] { border-color: var(--ink); }
+.chip.is-total .swatch { background: var(--ink); border-radius: 1px; height: 3px; width: 12px; }
+.chip:disabled { opacity: .38; cursor: not-allowed; }
+
+.mini-actions { display: flex; gap: 10px; margin-top: 2px; }
+.linkish {
+  font: inherit; font-size: 12px; background: none; border: none; padding: 0;
+  color: var(--accent-text); cursor: pointer; text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+select, .seg {
+  font: inherit; font-size: 13px;
+  border: 1px solid var(--rule-strong); border-radius: var(--r);
+  background: var(--surface); color: var(--ink);
+  padding: 4px 8px;
+}
+.seg { display: inline-flex; padding: 2px; gap: 2px; }
+.seg button {
+  font: inherit; font-size: 12.5px;
+  border: none; background: none; color: var(--ink-2);
+  padding: 3px 10px; border-radius: 2px; cursor: pointer;
+}
+.seg button[aria-pressed="true"] {
+  background: var(--accent); color: var(--accent-ink); font-weight: 500;
+}
+.seg button:disabled { opacity: .35; cursor: not-allowed; }
+
+.years { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 13px; }
+.years input[type="range"] { width: 128px; accent-color: var(--accent); }
+.year-num {
+  width: 64px; font: inherit; font-family: var(--mono); font-size: 13px;
+  border: 1px solid var(--rule-strong); border-radius: var(--r);
+  background: var(--surface); color: var(--ink); padding: 2px 4px; text-align: center;
+}
+
+.cap-note {
+  font-size: 12px; color: var(--ink-muted); max-width: 420px;
+}
+
+/* ── Tabs ───────────────────────────────────────────────────────────────── */
+.tabs {
+  display: flex; gap: 2px; padding: 0 20px;
+  background: var(--surface); border-bottom: 1px solid var(--rule);
+  overflow-x: auto;
+}
+.tabs button {
+  font: inherit; font-size: 13.5px;
+  background: none; border: none; cursor: pointer;
+  color: var(--ink-2); padding: 11px 13px 9px;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-selected="true"] {
+  color: var(--ink); font-weight: 600; border-bottom-color: var(--accent);
+}
+
+.sharebar {
+  display: flex; justify-content: flex-end; align-items: center; gap: 10px;
+  padding: 9px 20px 0; min-height: 34px;
+}
+.sharebar button {
+  font: inherit; font-size: 12px; color: var(--accent-text);
+  background: var(--surface); border: 1px solid var(--rule-strong);
+  border-radius: var(--r); padding: 6px 10px; cursor: pointer;
+}
+.sharebar button:hover { background: var(--surface-2); }
+.sharebar .share-status { color: var(--ink-muted); font-size: 12px; }
+
+/* ── Content ────────────────────────────────────────────────────────────── */
+main { padding: 18px 20px 56px; display: grid; gap: 16px; }
+.panel { display: none; gap: 16px; }
+.panel[data-active] { display: grid; }
+
+.split { display: grid; grid-template-columns: minmax(0, 2.1fr) minmax(240px, 1fr); gap: 16px; }
+@media (max-width: 940px) { .split { grid-template-columns: 1fr; } }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  padding: 14px 16px 16px;
+  min-width: 0;
+}
+.card-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 2px;
+}
+.card h2 {
+  margin: 0; font-size: 14.5px; font-weight: 600; letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+.card .unit { font-size: 12px; color: var(--ink-muted); font-family: var(--mono); }
+.card .desc { margin: 4px 0 12px; font-size: 12.5px; color: var(--ink-2); max-width: 62ch; }
+
+.source {
+  margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--grid);
+  font-family: var(--mono); font-size: 11px; color: var(--ink-muted);
+  display: flex; gap: 14px; flex-wrap: wrap;
+}
+.source a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.source a:hover { color: var(--ink); }
+.source .source-link {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Legend ─────────────────────────────────────────────────────────────── */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 10px 0 2px;
+  font-size: 12px; color: var(--ink-2);
+}
+.legend .item { display: inline-flex; align-items: center; gap: 6px; }
+.legend .key { width: 12px; height: 3px; border-radius: 2px; background: var(--k); flex: none; }
+.legend .key.total { height: 3px; background: var(--ink); }
+.legend .key.comparison {
+  width: 16px; height: 0; border-radius: 0; background: none;
+  border-top: 2px dashed var(--k);
+}
+
+/* ── Chart ──────────────────────────────────────────────────────────────── */
+.chart-wrap { position: relative; }
+svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+svg.chart text { font-family: var(--mono); font-size: 10.5px; fill: var(--ink-muted); }
+svg.chart .gridline { stroke: var(--grid); stroke-width: 1; }
+svg.chart .axisline { stroke: var(--axis); stroke-width: 1; }
+svg.chart .serie { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg.chart .serie.comparison { stroke-width: 1.8; opacity: .82; }
+svg.chart .serie-total { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
+svg.chart .endlabel { font-size: 10.5px; font-weight: 500; }
+svg.chart .crosshair { stroke: var(--ink-muted); stroke-width: 1; stroke-dasharray: 2 3; }
+svg.chart .dot { stroke: var(--surface); stroke-width: 2; }
+svg.chart .scatter-pt { stroke: var(--surface); stroke-width: 1.5; }
+svg.chart .ptlabel { font-size: 10px; fill: var(--ink-2); }
+svg.chart .seglabel {
+  fill: var(--ink); font-weight: 600;
+  stroke: var(--surface); stroke-width: 2.2; paint-order: stroke fill;
+}
+
+.tooltip {
+  position: absolute; pointer-events: none; z-index: 5;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--rule-strong); border-radius: var(--r);
+  padding: 8px 10px; font-size: 12px; min-width: 148px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.13);
+  opacity: 0; transition: opacity .1s;
+}
+.tooltip[data-show] { opacity: 1; }
+.tooltip .tt-head {
+  font-family: var(--mono); font-size: 11px; color: var(--ink-muted);
+  margin-bottom: 5px; letter-spacing: .04em;
+}
+.tooltip .tt-row {
+  display: flex; align-items: center; gap: 7px;
+  justify-content: space-between; padding: 1.5px 0;
+}
+.tooltip .tt-name { display: inline-flex; align-items: center; gap: 6px; }
+.tooltip .tt-key { width: 8px; height: 8px; border-radius: 2px; background: var(--k); flex: none; }
+.tooltip .tt-val { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 500; }
+
+/* ── Stat tiles ─────────────────────────────────────────────────────────── */
+.tiles { display: grid; gap: 9px; }
+.tile {
+  border: 1px solid var(--rule); border-radius: var(--r);
+  padding: 9px 11px; background: var(--surface);
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+}
+.tile .t-name { font-size: 12.5px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+.tile .t-name .key { width: 10px; height: 3px; border-radius: 2px; background: var(--k); flex: none; }
+.tile .t-name .key.comparison {
+  width: 14px; height: 0; border-radius: 0; background: none;
+  border-top: 2px dashed var(--k);
+}
+.tile .t-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile .t-val { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 500; font-size: 13.5px; white-space: nowrap; }
+.tile .t-delta { font-family: var(--mono); font-size: 11.5px; margin-left: 7px; }
+.up   { color: #006300; }
+.down { color: #b4322f; }
+:root[data-theme="dark"] .up   { color: #0ca30c; }
+:root[data-theme="dark"] .down { color: #e66767; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .up   { color: #0ca30c; }
+  :root:not([data-theme="light"]) .down { color: #e66767; }
+}
+
+/* ── Table ──────────────────────────────────────────────────────────────── */
+.table-scroll { overflow-x: auto; margin-top: 2px; }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th, td {
+  text-align: right; padding: 5px 9px;
+  border-bottom: 1px solid var(--grid); white-space: nowrap;
+}
+th:first-child, td:first-child { text-align: left; position: sticky; left: 0; background: var(--surface); }
+thead th {
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  color: var(--ink-muted); border-bottom: 1px solid var(--axis);
+  position: sticky; top: 0; background: var(--surface);
+}
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+tbody td:first-child { font-family: var(--sans); }
+tbody tr:hover td { background: var(--surface-2); }
+tbody tr.total-row td { font-weight: 600; border-bottom: 1px solid var(--axis); }
+.muni-key { display: inline-flex; align-items: center; gap: 7px; }
+.muni-key .key { width: 10px; height: 3px; border-radius: 2px; background: var(--k); flex: none; }
+.sami { color: var(--ink-muted); font-size: 11.5px; }
+
+details.tableview { margin-top: 12px; }
+details.tableview > summary {
+  cursor: pointer; font-size: 12.5px; color: var(--accent-text);
+  list-style: none; display: inline-flex; align-items: center; gap: 6px;
+}
+details.tableview > summary::-webkit-details-marker { display: none; }
+details.tableview > summary::before { content: "▸"; font-size: 10px; }
+details.tableview[open] > summary::before { content: "▾"; }
+
+.empty {
+  padding: 34px 16px; text-align: center; color: var(--ink-muted); font-size: 13px;
+}
+
+.pill {
+  display: inline-block; font-family: var(--mono); font-size: 10.5px;
+  padding: 1px 6px; border-radius: 2px;
+  background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--rule);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+
+<header class="masthead">
+  <span class="eyebrow">Finnmark Arbeiderparti</span>
+  <div class="titlerow">
+    <h1>Finnmarkspanelet</h1>
+    <span class="sub">18 kommuner · befolkning, kommuneøkonomi, næringsliv og valg</span>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs" role="tablist" aria-label="Temaer"></nav>
+
+<div class="sharebar" aria-label="Del visning">
+  <button type="button" id="copyShareLink">Kopier lenke til denne visningen</button>
+  <span class="share-status" id="shareStatus" role="status" aria-live="polite"></span>
+</div>
+
+<div class="rail">
+  <div class="rail-row">
+    <div class="field" style="flex:1 1 460px; min-width:0;">
+      <span class="field-label" id="lbl-regions">Regioner</span>
+      <div class="chips" id="regionChips" role="group" aria-labelledby="lbl-regions"></div>
+      <div class="mini-actions">
+        <button class="linkish" id="clearAll" type="button">Fjern alle kommuner</button>
+        <button class="linkish" id="pickAll" type="button">Velg alle</button>
+      </div>
+      <p class="cap-note" id="capNote"></p>
+    </div>
+
+    <div class="field">
+      <span class="field-label">Periode</span>
+      <div class="years">
+        <input type="number" id="yrFrom" class="year-num" aria-label="Fra år (skriv inn)">
+        <input type="range" id="yearFrom" min="2000" max="2024" step="1" aria-label="Fra år">
+        <span aria-hidden="true">–</span>
+        <input type="range" id="yearTo" min="2000" max="2024" step="1" aria-label="Til år">
+        <input type="number" id="yrTo" class="year-num" aria-label="Til år (skriv inn)">
+      </div>
+      <label class="cap-note" style="display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" id="visAlleAr"> Vis hvert år på x-aksen
+      </label>
+    </div>
+
+    <div class="field">
+      <span class="field-label">Måleform</span>
+      <div class="seg" id="normSeg" role="group" aria-label="Måleform">
+        <button type="button" data-norm="abs" aria-pressed="true">Absolutt</button>
+        <button type="button" data-norm="per1000">Per 1 000 innb.</button>
+        <button type="button" data-norm="index">Indeks</button>
+      </div>
+      <p class="cap-note" id="normNote"></p>
+    </div>
+  </div>
+</div>
+
+<main id="main"></main>
+
+
+
+<div id="lasteskjerm" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--surface);color:var(--muted);font:14px system-ui;z-index:999;">
+  Henter tall fra SSB …
+</div>
+
+<script>
+"use strict";
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   0. DATAKILDE
+   Siden henter LIVE fra /api/ssb/<tema> ved hvert besøk. Det endepunktet
+   validerer, cacher og faller tilbake til siste gode uttrekk på tjener-
+   siden — se lib/ssb/index.ts. Her på klienten er reglene enklere:
+   svarer et tema ikke, vises det uten data. Siden bruker aldri syntetiske
+   tall som erstatning for et manglende eller feilet uttrekk.
+
+   Ekte data følger INDIKATOR, ikke tema. Ett uttrekk kan dekke folkemengde og
+   aldersandeler uten å dekke flytting — de kommer fra ulike SSB-tabeller. Å
+   markere hele temaet som ekte da ville vært en løgn om to av kurvene.
+   ═════════════════════════════════════════════════════════════════════════ */
+const SSB_TEMAER = ["befolkning", "naering", "okonomi", "valg"];
+const SSB_FETCH_TIMEOUT_MS = 20000;
+
+async function fetchWithTimeout(input, init = {}, timeoutMs = SSB_FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* Kommuneøkonomi skal kun vises for innloggede — se «FANER» lenger ned der
+   selve fanen skjules. Vi lar rett og slett være å SPØRRE om temaet for
+   anonyme besøkende her, i stedet for å hente det og skjule feilen: en
+   mislykket 401 ville ellers dukket opp i feilPerTema/LIVE_FEIL-banneret
+   under, som en falsk «henting feilet»-advarsel ingen kan gjøre noe med. */
+async function hentLiveSSB(temaer = SSB_TEMAER) {
+  const ut = {};
+  const feilPerTema = {};
+  await Promise.all(temaer.map(async (tema) => {
+    try {
+      const res = await fetchWithTimeout(`/api/ssb/${tema}`, { cache: "no-store" });
+      if (!res.ok) { feilPerTema[tema] = `HTTP ${res.status}`; return; }
+      const svar = await res.json();
+      if (!svar?.datasett) { feilPerTema[tema] = "uventet svarform"; return; }
+      ut[tema] = { ...svar.datasett, _status: svar.status, _feil: svar.feil ?? null };
+      if (svar.status !== "fersk") {
+        console.warn(`[ssb:${tema}] status=${svar.status}`, svar.feil ?? "");
+      }
+    } catch (e) {
+      feilPerTema[tema] = e instanceof Error ? e.message : String(e);
+    }
+  }));
+  return { ut, feilPerTema };
+}
+
+/* Kommuneøkonomi-fanen var tidligere skjult for besøkende uten innlogging i
+   TinkrFlows. Den skjulingen var kosmetikk: /api/ssb/[tema] har ingen
+   autorisasjon, så de samme tallene lå åpent på /api/ssb/okonomi uansett.
+   Dette nettstedet har ingen innlogging i det hele tatt, så fanen vises nå
+   til alle — den later ikke lenger som den er en tilgangskontroll.
+
+   Skal fanen bort, sett denne til false. Da forsvinner både fanen og
+   hentingen av temaet, for alle. */
+const VIS_KOMMUNEOKONOMI = true;
+
+/* Selve programmet pakkes i en async-start fordi vi må VENTE på nettverket
+   før noe kan tegnes — hele resten av filen forutsetter at SSB allerede er
+   fylt. Bygges siden om til et rammeverk med egen loading-tilstand senere,
+   er det denne funksjonen som blir overflødig. */
+async function start() {
+  const temaer = VIS_KOMMUNEOKONOMI ? SSB_TEMAER : SSB_TEMAER.filter((t) => t !== "okonomi");
+  const { ut: live } = await hentLiveSSB(temaer);
+  const SSB = live;
+  document.getElementById("lasteskjerm")?.remove();
+
+const EKTE_HENTET = new Map();   // indikator → ISO-tidspunkt
+for (const blokk of Object.values(SSB)) {
+  for (const rad of blokk?.fakta ?? []) {
+    if (blokk.hentet) EKTE_HENTET.set(rad[2], blokk.hentet);
+  }
+}
+/* Aldersstruktur og valg trenger egne tidspunkt siden de ikke ligger i
+   den flate faktatabellen. */
+for (const b of Object.values(SSB)) {
+  if (b?.befolkning?.length && b.hentet) EKTE_HENTET.set("__struktur", b.hentet);
+}
+if (SSB.valg?.resultater?.length && SSB.valg.hentet) EKTE_HENTET.set("__valg", SSB.valg.hentet);
+
+/** Hentetidspunkt for en indikator, formatert for kildelinja under figuren. */
+function hentet(ind) {
+  const t = EKTE_HENTET.get(ind);
+  if (!t) return "—";
+  const d = new Date(t);
+  return Number.isNaN(+d)
+    ? String(t)
+    : d.toLocaleDateString("nb-NO", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   1. REGIONREGISTER
+   Stabil intern nøkkel per kommune. SSB-kodene endret seg i 2020 (20xx → 54xx)
+   og igjen i 2024 (54xx → 56xx), så koden må aldri brukes som identitet — bare
+   som noe vi mapper FRA når data hentes.
+
+   ⚠️ Kommunenumrene under er skrevet fra hukommelsen og MÅ verifiseres mot
+   SSBs klassifikasjons-API (KLASS) før ekte data hentes. Det samme gjelder
+   historiske koder og sammenslåingen i 2020.
+   ═════════════════════════════════════════════════════════════════════════ */
+const REGIONS = [
+  { key: "hammerfest",  navn: "Hammerfest",   sami: "Hámmerfeasta",  ssb2024: "5601", ssb2020: "5406", ssb2019: ["2004", "2017"] },
+  { key: "alta",        navn: "Alta",         sami: "Álaheadju",     ssb2024: "5603", ssb2020: "5403", ssb2019: ["2012"] },
+  { key: "sorvaranger", navn: "Sør-Varanger", sami: "Mátta-Várjjat", ssb2024: "5605", ssb2020: "5444", ssb2019: ["2030"] },
+  { key: "vadso",       navn: "Vadsø",        sami: "Čáhcesuolu",    ssb2024: "5607", ssb2020: "5405", ssb2019: ["2003"] },
+  { key: "karasjok",    navn: "Karasjok",     sami: "Kárášjohka",    ssb2024: "5610", ssb2020: "5437", ssb2019: ["2021"] },
+  { key: "kautokeino",  navn: "Kautokeino",   sami: "Guovdageaidnu", ssb2024: "5612", ssb2020: "5430", ssb2019: ["2011"] },
+  { key: "loppa",       navn: "Loppa",        sami: "Láhppi",        ssb2024: "5614", ssb2020: "5414", ssb2019: ["2014"] },
+  { key: "hasvik",      navn: "Hasvik",       sami: "Ákŋoluokta",    ssb2024: "5616", ssb2020: "5411", ssb2019: ["2015"] },
+  { key: "masoy",       navn: "Måsøy",        sami: "Muosát",        ssb2024: "5618", ssb2020: "5427", ssb2019: ["2018"] },
+  { key: "nordkapp",    navn: "Nordkapp",     sami: "Davvinjárga",   ssb2024: "5620", ssb2020: "5435", ssb2019: ["2019"] },
+  { key: "porsanger",   navn: "Porsanger",    sami: "Porsáŋgu",      ssb2024: "5622", ssb2020: "5436", ssb2019: ["2020"] },
+  { key: "lebesby",     navn: "Lebesby",      sami: "Davvesiida",    ssb2024: "5624", ssb2020: "5438", ssb2019: ["2022"] },
+  { key: "gamvik",      navn: "Gamvik",       sami: "Gáŋgaviika",    ssb2024: "5626", ssb2020: "5439", ssb2019: ["2023"] },
+  { key: "tana",        navn: "Tana",         sami: "Deatnu",        ssb2024: "5628", ssb2020: "5441", ssb2019: ["2025"] },
+  { key: "berlevag",    navn: "Berlevåg",     sami: "Bearalváhki",   ssb2024: "5630", ssb2020: "5440", ssb2019: ["2024"] },
+  { key: "batsfjord",   navn: "Båtsfjord",    sami: "Báhcavuotna",   ssb2024: "5632", ssb2020: "5443", ssb2019: ["2028"] },
+  { key: "vardo",       navn: "Vardø",        sami: "Várggát",       ssb2024: "5634", ssb2020: "5404", ssb2019: ["2002"] },
+  { key: "nesseby",     navn: "Nesseby",      sami: "Unjárga",       ssb2024: "5636", ssb2020: "5442", ssb2019: ["2027"] },
+];
+const REGION_BY_KEY = Object.fromEntries(REGIONS.map(r => [r.key, r]));
+const TOTAL_KEY = "__finnmark";
+const AGE_REFERENCES = [
+  { key: "norge", dataKey: "__norge", navn: "Norge", dash: "8 4" },
+  { key: "sentralitet1", dataKey: "__sentralitet1", navn: "Sentralitetsgruppe 1", dash: "8 4" },
+  { key: "sentralitet2", dataKey: "__sentralitet2", navn: "Sentralitetsgruppe 2", dash: "5 3" },
+  { key: "sentralitet3", dataKey: "__sentralitet3", navn: "Sentralitetsgruppe 3", dash: "3 3" },
+  { key: "sentralitet4", dataKey: "__sentralitet4", navn: "Sentralitetsgruppe 4", dash: "10 3 2 3" },
+  { key: "sentralitet5", dataKey: "__sentralitet5", navn: "Sentralitetsgruppe 5", dash: "2 3" },
+  { key: "sentralitet6", dataKey: "__sentralitet6", navn: "Sentralitetsgruppe 6", dash: "12 3" },
+]
+const AGE_REFERENCE_BY_KEY = Object.fromEntries(AGE_REFERENCES.map(r => [r.key, r]));
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2. INDIKATORREGISTER
+   Hver indikator vet selv hvordan den skal formateres og hvilke måleformer
+   som er meningsfulle for den. En andel i prosent skal for eksempel aldri
+   kunne vises "per 1 000 innbyggere".
+   ═════════════════════════════════════════════════════════════════════════ */
+const KILDE_LENKER = {
+  "ssb:07459": { label: "SSB tabell 07459", url: "https://www.ssb.no/statbank/table/07459" },
+  "klass:128": { label: "SSBs sentralitetsinndeling", url: "https://www.ssb.no/klass/klassifikasjoner/128" },
+  "ssb:01223": { label: "SSB tabell 01223", url: "https://www.ssb.no/statbank/table/01223" },
+  "kostra:12134": { label: "KOSTRA tabell 12134", url: "https://www.ssb.no/statbank/table/12134" },
+  "kostra:12143": { label: "KOSTRA tabell 12143", url: "https://www.ssb.no/statbank/table/12143" },
+  "kostra:12137": { label: "KOSTRA tabell 12137", url: "https://www.ssb.no/statbank/table/12137" },
+  "ssb:11616": { label: "SSB tabell 11616", url: "https://www.ssb.no/statbank/table/11616" },
+  "ssb:11917": { label: "SSB tabell 11917", url: "https://www.ssb.no/statbank/table/11917" },
+  "ssb:06445": { label: "SSB tabell 06445", url: "https://www.ssb.no/statbank/table/06445" },
+  "ssb:07091": { label: "SSB tabell 07091", url: "https://www.ssb.no/statbank/table/07091" },
+  "ssb:01180": { label: "SSB tabell 01180", url: "https://www.ssb.no/statbank/table/01180" },
+  "valgresultat.no": { label: "Valgresultat.no", url: "https://www.valgresultat.no/" },
+};
+
+function kildeHTML(value, compact = false) {
+  return String(value).split(" · ").map(part => {
+    const key = part.trim();
+    const link = KILDE_LENKER[key];
+    if (!link) return part;
+    const className = compact ? ' class="pill source-link"' : ' class="source-link"';
+    return `<a${className} href="${link.url}" target="_blank" rel="noopener noreferrer" title="Åpne primærdata: ${link.label}">${link.label}</a>`;
+  }).join(" · ");
+}
+
+const IND = {
+  folkemengde:      { navn: "Folkemengde",                    tema: "befolkning", enhet: "personer",  dec: 0, per1000: false, additiv: true,  kilde: "ssb:07459" },
+  fodselsoverskudd: { navn: "Fødselsoverskudd",               tema: "befolkning", enhet: "personer",  dec: 0, per1000: true,  additiv: true,  kilde: "ssb:01223" },
+  nettoflytting:    { navn: "Nettoflytting",                  tema: "befolkning", enhet: "personer",  dec: 0, per1000: true,  additiv: true,  kilde: "ssb:01223" },
+  andel67:          { navn: "Andel 67 år og over",            tema: "befolkning", enhet: "%",         dec: 1, per1000: false, additiv: false, kilde: "ssb:07459" },
+  andel0_19:        { navn: "Andel 0–19 år",                  tema: "befolkning", enhet: "%",         dec: 1, per1000: false, additiv: false, kilde: "ssb:07459" },
+  // «derivert»: regnes ut fra befolkningsstrukturen ved visning, ligger aldri
+  // i FACTS/fakta. Holdes utenfor EKTE_IND-regnskapet i banneret (se der) —
+  // den er like ekte som aldersfordelingen den bygger på, ikke egen kilde.
+  andelbefolkning:  { navn: "Andel av befolkningen",           tema: "befolkning", enhet: "%",         dec: 1, per1000: false, additiv: false, derivert: true, kilde: "ssb:07459" },
+
+  driftsresultat:   { navn: "Netto driftsresultat",           tema: "okonomi",    enhet: "% av driftsinntekter", dec: 1, per1000: false, additiv: false, kilde: "kostra:12134" },
+  lanegjeld:        { navn: "Netto lånegjeld per innbygger",  tema: "okonomi",    enhet: "kr",        dec: 0, per1000: false, additiv: false, kilde: "kostra:12137" },
+  disposisjonsfond: { navn: "Disposisjonsfond",               tema: "okonomi",    enhet: "% av driftsinntekter", dec: 1, per1000: false, additiv: false, kilde: "kostra:12143" },
+  frieinntekter:    { navn: "Frie inntekter per innbygger",   tema: "okonomi",    enhet: "kr",        dec: 0, per1000: false, additiv: false, kilde: "kostra:12134" },
+
+  sysselsatte:      { navn: "Sysselsatte (bosatte)",          tema: "naering",    enhet: "personer",  dec: 0, per1000: true,  additiv: true,  kilde: "ssb:11616" },
+  arbeidsplasser:   { navn: "Arbeidsplasser i kommunen",      tema: "naering",    enhet: "personer",  dec: 0, per1000: true,  additiv: true,  kilde: "ssb:11616" },
+  andel_kommunal:   { navn: "Andel sysselsatte i kommunal sektor", tema: "naering", enhet: "%",       dec: 1, per1000: false, additiv: false, kilde: "ssb:11917" },
+  sysselsettingsandel: { navn: "Sysselsettingsandel",           tema: "naering",    enhet: "%",       dec: 1, per1000: false, additiv: false, kilde: "ssb:06445" },
+  pendlingsbalanse: { navn: "Pendlingsbalanse",               tema: "naering",    enhet: "arb.pl. per 100 sysselsatte", dec: 1, per1000: false, additiv: false, kilde: "ssb:11616" },
+  foretak:          { navn: "Registrerte foretak",            tema: "naering",    enhet: "foretak",   dec: 0, per1000: true,  additiv: true,  kilde: "ssb:07091" },
+
+  // «derivert»: brukes bare til å gjenbruke lineChart()s formattering for
+  // valg-tidsserien. Andelene kommer aldri fra FACTS/fakta (de ligger i
+  // VALG_EKTE/VALGFAKTA, med valgtype som egen dimensjon) — holdes derfor
+  // utenfor EKTE_IND-regnskapet i banneret, som allerede har sin egen
+  // EKTE_VALG/EKTE_FYLKESTING-sjekk for dette temaet.
+  valgandel:        { navn: "Valgoppslutning",                 tema: "valg",       enhet: "%",         dec: 1, per1000: false, additiv: false, derivert: true, kilde: "" },
+};
+
+/* Ap bruker merkefargen; de øvrige tar validerte kategorislots så alle åtte
+   kan skilles i samme stablede søyle. Segmentene er dessuten direkte merket
+   med partinavn, så fargen er sekundær bærer av identitet — nødvendig, siden
+   ekte partifarger kolliderer (Ap/SV/R er alle røde, H/FrP/V alle blålige).
+   Rekkefølgen unngår tidligere feil der FrP og KrF fikk samme farge. */
+const PARTIER = [
+  { key: "ap",  navn: "Ap",  farge: "var(--accent)" },
+  { key: "h",   navn: "H",   farge: "var(--s1)" },
+  { key: "frp", navn: "FrP", farge: "var(--s7)" },
+  { key: "sp",  navn: "Sp",  farge: "var(--s6)" },
+  { key: "sv",  navn: "SV",  farge: "var(--s5)" },
+  { key: "v",   navn: "V",   farge: "var(--s3)" },
+  { key: "krf", navn: "KrF", farge: "var(--s4)" },
+  { key: "r",   navn: "R",   farge: "var(--s2)" },
+];
+const VALG = {
+  kommune:    { navn: "Kommunestyrevalg", ar: [2011, 2015, 2019, 2023], kilde: "ssb:01180" },
+  storting:   { navn: "Stortingsvalg",    ar: [2013, 2017, 2021, 2025], kilde: "valgresultat.no" },
+  fylkesting: { navn: "Fylkestingsvalg",  ar: [2011, 2015, 2019, 2023], kilde: "valgresultat.no" },
+};
+/** Valgtyper mandatfordelingen (halvsirkelen) dekker — ikke kommunestyrevalg. */
+const MANDAT_VALGTYPER = ["storting", "fylkesting"];
+
+/* ── Mandatfordeling (halvsirkel): partikoder fra valgresultat.no, IKKE
+   panelets faste åtte — mandater fordeles på fylkesnivå og inkluderer
+   reelt betydningsfulle regionale lister (Nordkalottfolket, Samelista) som
+   ikke finnes i PARTIER over. Rekkefølgen er en venstre–høyre-plassering
+   for selve tegningen; ukjente/uklassifiserte partier havner til høyre,
+   sortert etter fallende mandattall (se renderHemicycle). */
+const PARTI_ORDEN = ["RØDT", "SV", "A", "NORDK", "SAELI", "SP", "KRF", "MDG", "V", "H", "FRP", "INP"];
+const PARTI_FARGE_KODE = {
+  A: "var(--accent)", H: "var(--s1)", FRP: "var(--s7)", SP: "var(--s6)",
+  SV: "var(--s5)", V: "var(--s3)", KRF: "var(--s4)", RØDT: "var(--s2)",
+  NORDK: "var(--p-nordk)", SAELI: "var(--p-same)", INP: "var(--p-inp)", MDG: "var(--p-mdg)",
+};
+const fargeForPartikode = (kode) => PARTI_FARGE_KODE[kode] || "var(--ink-muted)";
+const ordenForPartikode = (kode) => {
+  const i = PARTI_ORDEN.indexOf(kode);
+  return i === -1 ? PARTI_ORDEN.length : i;
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3. EKTE DATA
+   Alle faktarader og valgresultater kommer fra SSB/valgresultat.no via SSB-laget.
+   Manglende publiserte år vises ikke som nuller eller syntetiske erstatninger.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const YEAR_MIN = 2015, YEAR_MAX = new Date().getUTCFullYear();
+const FACTS = [];
+const VALGFAKTA = [];
+
+ /* Aldersstruktur fra ekte SSB-data. Tidligere demobygging er fjernet;
+    denne indeksen inneholder derfor bare rader som faktisk kom fra SSB. */
+const POPSTRUCT = new Map();
+for (const blokk of Object.values(SSB)) {
+  for (const [region, ar, kjonn, band, antall] of blokk?.befolkning ?? []) {
+    if (!REGION_BY_KEY[region]) continue;
+    POPSTRUCT.set(`${region}|${ar}|${kjonn}|${band}`, antall);
+  }
+}
+
+const AGE_REFERENCE_DATA = new Map();
+for (const blokk of Object.values(SSB)) {
+  for (const [referanse, ar, band, antall] of blokk?.sammenligninger ?? []) {
+    AGE_REFERENCE_DATA.set(`${referanse}|${ar}|${band}`, antall);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4. OPPSLAG OG AGGREGERING
+   ═══════════════════════════════════════════════════════════════════════════ */
+const FACT_INDEX = new Map();
+for (const f of FACTS) FACT_INDEX.set(`${f.region}|${f.ar}|${f.indikator}`, f.verdi);
+
+/* Ekte rader legges inn etter demoradene. De kan ikke kollidere — push()
+   hopper over indikatorer som finnes her — men rekkefølgen gjør intensjonen
+   entydig hvis noen senere fjerner den sperren. */
+for (const blokk of Object.values(SSB)) {
+  for (const [region, ar, indikator, verdi] of blokk?.fakta ?? []) {
+    if (!REGION_BY_KEY[region] || !IND[indikator]) continue;
+    FACT_INDEX.set(`${region}|${ar}|${indikator}`, verdi);
+  }
+}
+
+/* Ekte valgresultater, samme "ekte overstyrer demo"-prinsipp som over — men
+   som egen oppslagstabell, siden VALGFAKTA er formet ulikt FACT_INDEX
+   (valgtype er en fjerde nøkkel, ikke en indikator). */
+const VALG_EKTE = new Map();   // "valgtype|region|år|parti" → andel
+for (const blokk of Object.values(SSB)) {
+  for (const [valgtype, region, ar, parti, andel] of blokk?.resultater ?? []) {
+    if (!REGION_BY_KEY[region]) continue;
+    VALG_EKTE.set(`${valgtype}|${region}|${ar}|${parti}`, andel);
+  }
+}
+function valgAndel(valgtype, region, ar, parti) {
+  return VALG_EKTE.get(`${valgtype}|${region}|${ar}|${parti}`) ?? null;
+}
+
+/* Finnmark samlet er folketallsvektet snitt av kommunene, samme prinsipp
+   som resten av panelet bruker for regionaggregering (se finnmark()) — men
+   valgAndel() har valgtype som egen dimensjon, så aggregeringen kan ikke
+   gjenbruke finnmark() direkte. Brukes av både stolpediagrammet og
+   trendlinjen, for alle tre valgtyper likt. */
+function valgAndelAggregert(valgtype, region, ar, parti) {
+  if (region !== TOTAL_KEY) return valgAndel(valgtype, region, ar, parti);
+  let num = 0, den = 0;
+  for (const r of REGIONS) {
+    const a = valgAndel(valgtype, r.key, ar, parti);
+    const w = FACT_INDEX.get(`${r.key}|${Math.min(ar, YEAR_MAX)}|folkemengde`) ?? 0;
+    if (a !== null) { num += a * w; den += w; }
+  }
+  return den ? +(num / den).toFixed(1) : null;
+}
+
+/* ── Mandatfordeling: fylkesnivå, ALLE partier som fikk mandater — ikke bare
+   de åtte i PARTIER. Egen oppslagstabell fra samme "ekte overstyrer
+   demo"-prinsipp, nøkkel er valgtype|år|partikode (ingen region — mandater
+   fordeles på hele fylket/valgdistriktet). */
+const MANDAT_EKTE = new Map();   // "valgtype|år|partikode" → { navn, mandater }
+for (const blokk of Object.values(SSB)) {
+  for (const [valgtype, ar, partikode, partinavn, mandater] of blokk?.mandater ?? []) {
+    MANDAT_EKTE.set(`${valgtype}|${ar}|${partikode}`, { navn: partinavn, mandater });
+  }
+}
+
+/** Mandatfordeling for én valgtype × år — bare hvis kilden har ekte data. */
+function mandaterFor(valgtype, ar) {
+  return [...MANDAT_EKTE.entries()]
+    .filter(([k]) => k.startsWith(`${valgtype}|${ar}|`))
+    .map(([k, v]) => ({ kode: k.split("|")[2], navn: v.navn, mandater: v.mandater }));
+}
+
+/* Årene ekte data faktisk dekker. Uttrekket kan være kortere enn demoperioden,
+   og da skal tidsvelgeren ikke tilby år vi ikke har tall for. */
+const EKTE_ÅR = (() => {
+  const år = new Set();
+  for (const blokk of Object.values(SSB)) {
+    for (const a of blokk?.aar ?? []) år.add(Number(a));
+  }
+  return [...år].sort((a, b) => a - b);
+})();
+
+/* ── Befolkningsstruktur: region × år × kjønn × aldersgruppe ──────────────
+   Dette er bevisst en EGEN faktatabell, ikke presset inn i den flate
+   indikatormodellen. Alder og kjønn er to ekte dimensjoner, og SSB leverer
+   dem som dimensjoner i samme tabell (07459) — å kode dem som «indikator»
+   ville gjort SSB-mappingen verre, ikke bedre.                              */
+const AGE_BANDS = (() => {
+  const b = [];
+  for (let a = 0; a < 90; a += 5) b.push({ key: `${a}_${a + 4}`, navn: `${a}–${a + 4}`, lo: a });
+  b.push({ key: "90p", navn: "90+", lo: 90 });
+  return b;
+})();
+
+function pop(region, ar, kjonn, band) {
+  if (region === TOTAL_KEY) {
+    return REGIONS.reduce((s, r) => s + (POPSTRUCT.get(`${r.key}|${ar}|${kjonn}|${band}`) ?? 0), 0);
+  }
+  return POPSTRUCT.get(`${region}|${ar}|${kjonn}|${band}`) ?? 0;
+}
+const popBand  = (region, ar, band) => pop(region, ar, "m", band) + pop(region, ar, "k", band);
+const popTotal = (region, ar) => AGE_BANDS.reduce((s, b) => s + popBand(region, ar, b.key), 0);
+
+/* Aldersfilter for tidsserien. Pyramiden er upåvirket — den ER
+   aldersfordelingen, og skal alltid vise alle grupper. */
+/** Kompakt sammendrag av utvalget: sammenhengende bånd slås til intervaller. */
+function selectedAgeLabel() {
+  const chosen = AGE_BANDS.filter(b => state.ageBands.includes(b.key));
+  const runs = [];
+  for (const b of chosen) {
+    const last = runs[runs.length - 1];
+    if (last && b.lo === last.end.lo + 5) last.end = b;
+    else runs.push({ start: b, end: b });
+  }
+  return runs.map(r => {
+    if (r.start === r.end) return r.start.navn;
+    const hi = r.end.key === "90p" ? "90+" : String(r.end.lo + 4);
+    return `${r.start.lo}–${hi}`;
+  }).join(", ");
+}
+
+
+function raw(region, ar, ind) {
+  if (region === TOTAL_KEY) return finnmark(ar, ind);
+  const v = FACT_INDEX.get(`${region}|${ar}|${ind}`);
+  return v === undefined ? null : v;
+}
+
+const totalCache = new Map();
+function finnmark(ar, ind) {
+  const ck = `${ar}|${ind}`;
+  if (totalCache.has(ck)) return totalCache.get(ck);
+  const meta = IND[ind];
+  let out;
+  if (meta.additiv) {
+    // Summen av ingenting er ikke null — det er ukjent. Uten dette skillet
+    // ville år uten data vist «0 innbyggere i Finnmark».
+    let sum = 0, treff = 0;
+    for (const r of REGIONS) {
+      const v = FACT_INDEX.get(`${r.key}|${ar}|${ind}`);
+      if (v != null) { sum += v; treff++; }
+    }
+    out = treff ? sum : null;
+  } else {
+    // Ikke-additive indikatorer må vektes med folketall, ikke snittes flatt.
+    let num = 0, den = 0;
+    for (const r of REGIONS) {
+      const v = FACT_INDEX.get(`${r.key}|${ar}|${ind}`);
+      const w = FACT_INDEX.get(`${r.key}|${ar}|folkemengde`) ?? 0;
+      if (v != null) { num += v * w; den += w; }
+    }
+    out = den ? +(num / den).toFixed(IND[ind].dec) : null;
+  }
+  totalCache.set(ck, out);
+  return out;
+}
+
+function popOf(region, ar) {
+  return region === TOTAL_KEY ? finnmark(ar, "folkemengde") : (FACT_INDEX.get(`${region}|${ar}|folkemengde`) ?? null);
+}
+
+/** Verdi etter valgt måleform. */
+function value(region, ar, ind, norm, baseYear) {
+  const v = raw(region, ar, ind);
+  if (v == null) return null;
+  if (norm === "per1000" && per1000Allowed(ind)) {
+    const p = popOf(region, ar);
+    return p ? +(v / p * 1000).toFixed(1) : null;
+  }
+  if (norm === "index") {
+    const b = raw(region, baseYear, ind);
+    return b ? +(v / b * 100).toFixed(1) : null;
+  }
+  return v;
+}
+
+function per1000Allowed(ind) {
+  /* Folkemengde vises alltid som aldersgrupper i tidsserien, og en kohort
+     per 1 000 innbyggere er et meningsfylt forholdstall. */
+  return ind === "folkemengde" ? true : IND[ind].per1000;
+}
+function effectiveNorm(ind, norm) {
+  if (norm === "per1000" && !per1000Allowed(ind)) return "abs";
+  return norm;
+}
+
+function unitFor(ind, norm) {
+  const n = effectiveNorm(ind, norm);
+  if (n === "index") return `indeks, ${state.from} = 100`;
+  if (n === "per1000") return ind === "folkemengde"
+    ? "personer per 1 000 innb."
+    : "per 1 000 innb.";
+  return IND[ind].enhet;
+}
+
+const nf = (v, dec) => v == null ? "–" :
+  v.toLocaleString("nb-NO", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+
+function fmt(v, ind, norm) {
+  const n = effectiveNorm(ind, norm);
+  if (v == null) return "–";
+  if (n === "index") return nf(v, 1);
+  if (n === "per1000") return nf(v, 1);
+  return nf(v, IND[ind].dec);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   5. TILSTAND — delt på tvers av alle faner
+   ═════════════════════════════════════════════════════════════════════════ */
+const MAX_SERIES = 8;
+const SLOTS = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8"];
+
+const state = {
+  tab: "befolkning",
+  selected: ["alta", "sorvaranger", "hammerfest", "vadso"],
+  showTotal: false,
+  from: 2015,          /* siste 10 år som utgangspunkt */
+  to: 2024,
+  visAlleAr: false,    /* tvinger x-aksen til å vise hvert år, uansett periodelengde */
+  norm: "abs",
+  befView: "struktur", /* "tidsserie" | "struktur" */
+  pyrRegion: TOTAL_KEY,
+  pyrMode: "antall",   /* "antall" | "prosent" */
+  ageBands: ["20_24", "25_29", "30_34", "35_39"],
+  ageReferences: ["norge"],
+  ind: { befolkning: "folkemengde", okonomi: "driftsresultat", naering: "arbeidsplasser" },
+  valgtype: "kommune",
+  valgRegion: TOTAL_KEY,
+  valgVisning: "oppslutning",  /* "oppslutning" | "mandater" | "utvikling" */
+  hemiValgtype: "storting",
+  hemiYear: 2025,
+  trendPartier: ["ap", "h"],   /* de to største — flere kan slås på i kontrollraden */
+  trendTyper: ["kommune"],     /* flere valgtyper kan overlegges, se "2 prikkformer"-krav */
+  scatterX: "andel67",
+  scatterY: "pendlingsbalanse",
+  scatterYear: 2024,
+};
+
+/* Farge følger kommunen, ikke rekkefølgen i utvalget: slotten låses ved
+   valgtidspunkt, så en kommune som fjernes ikke maler om de andre. */
+const slotOf = new Map();
+function assignSlots() {
+  for (const k of [...slotOf.keys()]) if (!state.selected.includes(k)) slotOf.delete(k);
+  const used = new Set(slotOf.values());
+  for (const k of state.selected) {
+    if (slotOf.has(k)) continue;
+    const free = SLOTS.find(s => !used.has(s));
+    if (free) { slotOf.set(k, free); used.add(free); }
+  }
+}
+const colorOf = k => k === TOTAL_KEY ? "var(--ink)" : `var(${slotOf.get(k) || "--s1"})`;
+const nameOf  = k => k === TOTAL_KEY ? "Finnmark samlet" : REGION_BY_KEY[k].navn;
+
+function activeSeries() {
+  const out = state.selected.map(k => ({ key: k, navn: nameOf(k), farge: colorOf(k), total: false }));
+  if (state.showTotal) out.unshift({ key: TOTAL_KEY, navn: "Finnmark samlet", farge: "var(--ink)", total: true });
+  return out;
+}
+const years = () => Array.from({ length: state.to - state.from + 1 }, (_, i) => state.from + i);
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   6. GRAFKOMPONENT — linje med hårkors og verktøytips
+   ═════════════════════════════════════════════════════════════════════════ */
+const NS = "http://www.w3.org/2000/svg";
+const el = (n, a = {}) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+
+function niceTicks(min, max, count = 5) {
+  if (min === max) { min -= 1; max += 1; }
+  const span = max - min;
+  const step0 = span / count;
+  const mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= step0) || mag * 10;
+  const lo = Math.floor(min / step) * step;
+  const hi = Math.ceil(max / step) * step;
+  const out = [];
+  for (let v = lo; v <= hi + step / 2; v += step) out.push(+v.toFixed(10));
+  return out;
+}
+
+/**
+ * Tegner en liten, permanent markørform ved ett datapunkt — brukt når en
+ * linje trenger en ANNEN identitetsbærer enn farge (f.eks. valgtype, når
+ * farge allerede er brukt til parti). En hvit ring rundt holder formen
+ * lesbar der linjer/markører overlapper.
+ */
+function drawMarker(svg, shape, x, y, color) {
+  const ring = { stroke: "var(--surface)", "stroke-width": 1.5 };
+  if (shape === "square") {
+    svg.appendChild(el("rect", { x: x - 4, y: y - 4, width: 8, height: 8, fill: color, ...ring }));
+  } else if (shape === "triangle") {
+    const pts = `${x},${y - 5} ${x - 4.6},${y + 3.5} ${x + 4.6},${y + 3.5}`;
+    svg.appendChild(el("polygon", { points: pts, fill: color, ...ring }));
+  } else {
+    svg.appendChild(el("circle", { cx: x, cy: y, r: 3.6, fill: color, ...ring }));
+  }
+}
+
+function lineChart(container, { ind, series, ys, norm, valueOf, markerShape }) {
+  const getV = valueOf ?? ((k, y) => value(k, y, ind, norm, state.from));
+  container.innerHTML = "";
+  if (!series.length) {
+    container.innerHTML = `<p class="empty">Velg minst én region i kontrollraden over.</p>`;
+    return;
+  }
+
+  const W = 760, H = 300, ml = 58, mr = series.some(s => s.comparison) ? 168 : 112, mt = 12, mb = 30;
+  const iw = W - ml - mr, ih = H - mt - mb;
+
+  const data = series.map(s => ({
+    ...s,
+    pts: ys.map(y => ({ y, v: getV(s.key, y) })).filter(p => p.v != null),
+  })).filter(s => s.pts.length);
+
+  if (!data.length) { container.innerHTML = `<p class="empty">Ingen data for valgt periode.</p>`; return; }
+
+  const vals = data.flatMap(s => s.pts.map(p => p.v));
+  const ticks = niceTicks(Math.min(...vals), Math.max(...vals));
+  const y0 = ticks[0], y1 = ticks[ticks.length - 1];
+
+  const X = y => ml + (ys.length === 1 ? iw / 2 : (y - ys[0]) / (ys[ys.length - 1] - ys[0]) * iw);
+  const Y = v => mt + ih - (v - y0) / (y1 - y0) * ih;
+
+  const svg = el("svg", { class: "chart", viewBox: `0 0 ${W} ${H}`, role: "img" });
+  svg.appendChild(el("title")).textContent =
+    `${IND[ind].navn} ${state.from}–${state.to} for ${data.map(d => d.navn).join(", ")}`;
+
+  for (const t of ticks) {
+    svg.appendChild(el("line", { class: "gridline", x1: ml, x2: ml + iw, y1: Y(t), y2: Y(t) }));
+    const lb = el("text", { x: ml - 8, y: Y(t) + 3.5, "text-anchor": "end" });
+    lb.textContent = nf(t, effectiveNorm(ind, norm) === "abs" ? IND[ind].dec : 1);
+    svg.appendChild(lb);
+  }
+  svg.appendChild(el("line", { class: "axisline", x1: ml, x2: ml + iw, y1: mt + ih, y2: mt + ih }));
+
+  const stepY = state.visAlleAr ? 1 : Math.max(1, Math.ceil(ys.length / 9));
+  ys.forEach((y, i) => {
+    if (i % stepY && i !== ys.length - 1) return;
+    const lb = el("text", { x: X(y), y: H - 10, "text-anchor": "middle" });
+    lb.textContent = y;
+    svg.appendChild(lb);
+  });
+
+  if (effectiveNorm(ind, norm) === "index") {
+    svg.appendChild(el("line", { class: "gridline", x1: ml, x2: ml + iw, y1: Y(100), y2: Y(100),
+      style: "stroke:var(--axis);stroke-dasharray:3 3" }));
+  }
+
+  const endLabels = [];
+  for (const s of data) {
+    const d = s.pts.map((p, i) => `${i ? "L" : "M"}${X(p.y).toFixed(1)},${Y(p.v).toFixed(1)}`).join(" ");
+    const farge = s.total ? "var(--ink)" : s.farge;
+    svg.appendChild(el("path", {
+      class: s.total ? "serie-total" : `serie${s.comparison ? " comparison" : ""}`,
+      d,
+      stroke: farge,
+      ...(s.comparison ? { "stroke-dasharray": s.dash } : {}),
+    }));
+    if (markerShape) {
+      const shape = markerShape(s);
+      for (const p of s.pts) drawMarker(svg, shape, X(p.y), Y(p.v), farge);
+    }
+    const last = s.pts[s.pts.length - 1];
+    endLabels.push({ x: X(last.y) + 8, y: Y(last.v), navn: s.navn, farge });
+  }
+
+  /* Direkte etiketter er påkrevd (tre av lysmodusfargene ligger under 3:1),
+     så de må alltid tegnes — og derfor må de skyves fra hverandre når linjene
+     ender tett på hverandre. */
+  const GAP = 13;
+  endLabels.sort((a, b) => a.y - b.y);
+  for (let i = 1; i < endLabels.length; i++) {
+    if (endLabels[i].y - endLabels[i - 1].y < GAP) endLabels[i].y = endLabels[i - 1].y + GAP;
+  }
+  const spill = endLabels.length ? endLabels[endLabels.length - 1].y - (mt + ih) : 0;
+  if (spill > 0) for (const l of endLabels) l.y -= spill;
+  for (const l of endLabels) {
+    const lb = el("text", { class: "endlabel", x: l.x, y: l.y + 3.5, fill: l.farge });
+    lb.textContent = l.navn;
+    svg.appendChild(lb);
+  }
+
+  const cross = el("line", { class: "crosshair", y1: mt, y2: mt + ih, style: "display:none" });
+  svg.appendChild(cross);
+  const dots = el("g");
+  svg.appendChild(dots);
+
+  const wrap = document.createElement("div");
+  wrap.className = "chart-wrap";
+  wrap.appendChild(svg);
+  const tip = document.createElement("div");
+  tip.className = "tooltip";
+  wrap.appendChild(tip);
+  container.appendChild(wrap);
+
+  const hit = el("rect", { x: ml, y: mt, width: iw, height: ih, fill: "transparent" });
+  svg.appendChild(hit);
+
+  function move(ev) {
+    const r = svg.getBoundingClientRect();
+    const px = (ev.clientX - r.left) / r.width * W;
+    let best = ys[0], bd = Infinity;
+    for (const y of ys) { const d = Math.abs(X(y) - px); if (d < bd) { bd = d; best = y; } }
+
+    cross.setAttribute("x1", X(best)); cross.setAttribute("x2", X(best));
+    cross.style.display = "";
+    dots.innerHTML = "";
+
+    let rows = "";
+    for (const s of data) {
+      const p = s.pts.find(q => q.y === best);
+      if (!p) continue;
+      const c = s.total ? "var(--ink)" : s.farge;
+      dots.appendChild(el("circle", { class: "dot", cx: X(best), cy: Y(p.v), r: 4, fill: c }));
+      rows += `<div class="tt-row"><span class="tt-name"><i class="tt-key" style="--k:${c}"></i>${s.navn}</span>` +
+              `<span class="tt-val">${fmt(p.v, ind, norm)}</span></div>`;
+    }
+    tip.innerHTML = `<div class="tt-head">${best}</div>${rows}`;
+    tip.setAttribute("data-show", "");
+
+    const relX = X(best) / W * r.width;
+    tip.style.left = Math.min(Math.max(relX + 14, 4), r.width - tip.offsetWidth - 4) + "px";
+    tip.style.top = "8px";
+  }
+  function leave() { cross.style.display = "none"; dots.innerHTML = ""; tip.removeAttribute("data-show"); }
+  hit.addEventListener("pointermove", move);
+  hit.addEventListener("pointerleave", leave);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   7. FELLESBITER
+   ═════════════════════════════════════════════════════════════════════════ */
+/* Finnmark samlet er summen av de samme kommunene, så i absolutt målform
+   ligger den en størrelsesorden over enhver enkeltkommune. To akser ville
+   «løst» det og samtidig gjort grafen uleselig — riktig svar er å bytte
+   målform, så vi sier det i stedet. */
+function scaleHint(ind, series, norm) {
+  const mixed = series.some(s => s.total) && series.some(s => !s.total);
+  if (!mixed || effectiveNorm(ind, norm) !== "abs" || !IND[ind].additiv) return "";
+  return `<p class="cap-note" style="margin:8px 0 0">
+    Finnmark samlet er summen av kommunene og ligger derfor langt over dem på samme akse.
+    <button class="linkish" type="button" data-setnorm="index">Bytt til indeks</button>
+    for å sammenligne utvikling i stedet for nivå.</p>`;
+}
+
+/* Folkemengde og andel av befolkningen er de aldersoppdelte indikatorene, og
+   der er serien aldersgrupper — ikke kommuner. Kommuneutvalget summeres da
+   til én region. */
+const ageSeriesActive = (tema, ind) => tema === "befolkning" && (ind === "folkemengde" || ind === "andelbefolkning");
+
+/** Hvilke kommuner som summeres til grafens ene region. */
+function sumRegions() {
+  if (state.showTotal) {
+    return { keys: [TOTAL_KEY], label: "Finnmark samlet (18 kommuner)" };
+  }
+  if (!state.selected.length) {
+    return { keys: [], label: "Ingen kommuner valgt" };
+  }
+  return {
+    keys: state.selected,
+    label: state.selected.length === 1
+      ? nameOf(state.selected[0])
+      : `${state.selected.map(nameOf).join(" + ")}`,
+  };
+}
+
+/* Farge følger aldersgruppen, ikke rekkefølgen i utvalget — samme regel som
+   for kommuner, så et bånd ikke bytter farge når et annet fjernes. */
+const ageSlotOf = new Map();
+function assignAgeSlots() {
+  for (const k of [...ageSlotOf.keys()]) if (!state.ageBands.includes(k)) ageSlotOf.delete(k);
+  const used = new Set(ageSlotOf.values());
+  for (const k of state.ageBands) {
+    if (ageSlotOf.has(k)) continue;
+    const free = SLOTS.find(s => !used.has(s));
+    if (free) { ageSlotOf.set(k, free); used.add(free); }
+  }
+}
+
+function ageSeries() {
+  const by = Object.fromEntries(AGE_BANDS.map(b => [b.key, b]));
+  return state.ageBands.slice()
+    .sort((a, b) => by[a].lo - by[b].lo)
+    .map(k => ({ key: k, navn: `${by[k].navn} år`, farge: `var(${ageSlotOf.get(k) || "--s1"})`, total: false }));
+}
+
+/** Verdi for én aldersgruppe, summert over de valgte kommunene. */
+function ageValue(bandKey, ar, norm, ind) {
+  const { keys } = sumRegions();
+  const sum = y => keys.reduce((s, r) => s + popBand(r, y, bandKey), 0);
+
+  if (ind === "andelbefolkning") {
+    // Egen prosentandel av befolkningen — uavhengig av Måleform-bryteren
+    // (per1000 gir ikke mening på en verdi som allerede er en andel).
+    const andel = y => {
+      const p = keys.reduce((s, r) => s + (popOf(r, y) || 0), 0);
+      return p ? (sum(y) / p) * 100 : null;
+    };
+    if (norm === "index") {
+      const b = andel(state.from);
+      const v = andel(ar);
+      return b && v != null ? +((v / b) * 100).toFixed(1) : null;
+    }
+    const v = andel(ar);
+    return v == null ? null : +v.toFixed(1);
+  }
+
+  if (norm === "index") {
+    const b = sum(state.from);
+    return b ? +(sum(ar) / b * 100).toFixed(1) : null;
+  }
+  if (norm === "per1000") {
+    const p = keys.reduce((s, r) => s + (popOf(r, ar) || 0), 0);
+    return p ? +(sum(ar) / p * 1000).toFixed(1) : null;
+  }
+  return sum(ar);
+}
+
+function ageReferenceValue(seriesKey, ar, norm, ind) {
+  const [, refKey, bandKey] = seriesKey.split(":");
+  const ref = AGE_REFERENCE_BY_KEY[refKey];
+  if (!ref) return null;
+  const band = y => AGE_REFERENCE_DATA.get(`${ref.dataKey}|${y}|${bandKey}`) ?? null;
+  const total = y => AGE_BANDS.reduce((sum, b) =>
+    sum + (AGE_REFERENCE_DATA.get(`${ref.dataKey}|${y}|${b.key}`) ?? 0), 0);
+
+  if (ind === "andelbefolkning") {
+    const andel = y => {
+      const b = band(y), t = total(y);
+      return b != null && t ? b / t * 100 : null;
+    };
+    if (norm === "index") {
+      const base = andel(state.from), v = andel(ar);
+      return base && v != null ? +((v / base) * 100).toFixed(1) : null;
+    }
+    const v = andel(ar);
+    return v == null ? null : +v.toFixed(1);
+  }
+  if (norm === "index") {
+    const base = band(state.from), v = band(ar);
+    return base && v != null ? +((v / base) * 100).toFixed(1) : null;
+  }
+  if (norm === "per1000") {
+    const v = band(ar), t = total(ar);
+    return v != null && t ? +((v / t) * 1000).toFixed(1) : null;
+  }
+  return null;
+}
+
+function ageReferenceSeries(primary, ind, norm) {
+  if (ind === "folkemengde" && norm === "abs") return [];
+  return state.ageReferences.flatMap((refKey) => {
+    const ref = AGE_REFERENCE_BY_KEY[refKey];
+    if (!ref) return [];
+    return primary.map((s) => ({
+      key: `ref:${refKey}:${s.key}`,
+      navn: `${s.navn} · ${ref.navn}`,
+      farge: s.farge,
+      total: false,
+      comparison: true,
+      dash: ref.dash,
+    }));
+  });
+}
+
+function ageChartValue(key, ar, norm, ind) {
+  return key.startsWith("ref:") ? ageReferenceValue(key, ar, norm, ind) : ageValue(key, ar, norm, ind);
+}
+
+/* Hurtigvalgene gir sett på maks åtte bånd, siden hvert bånd nå er en egen
+   linje og paletten har åtte skillbare farger. «Alle 19» finnes derfor ikke —
+   det ville vært elleve linjer uten farge å tegne dem med. */
+const AGE_PICKS = {
+  ung:   { navn: "0–19",  lo: 0,  hi: 15 },
+  unge:  { navn: "20–39", lo: 20, hi: 35 },
+  midt:  { navn: "40–64", lo: 40, hi: 60 },
+  eldre: { navn: "65+",   lo: 65, hi: 90 },
+};
+
+function ageChips(ind) {
+  if (ind !== "folkemengde" && ind !== "andelbefolkning") return "";
+  const sel = new Set(state.ageBands);
+  const atCap = state.ageBands.length >= MAX_SERIES;
+  const note = !state.ageBands.length
+    ? "Ingen aldersgrupper valgt — velg minst én for å se tall."
+    : atCap
+      ? `Grensen på ${MAX_SERIES} grupper er nådd. Fjern én for å legge til en annen.`
+      : `${state.ageBands.length} av maks ${MAX_SERIES} grupper: ${selectedAgeLabel()}`;
+
+  return `<div class="field" style="margin:2px 0 12px">
+    <span class="field-label">Aldersgrupper — én linje hver</span>
+    <div class="mini-actions" style="margin:0 0 6px">
+      ${Object.entries(AGE_PICKS).map(([k, v]) =>
+        `<button class="linkish" type="button" data-agepick="${k}">${v.navn}</button>`).join("")}
+      <button class="linkish" type="button" data-agepick="ingen">Fjern alle</button>
+    </div>
+    <div class="chips">${AGE_BANDS.map(b => {
+      const on = sel.has(b.key);
+      return `<button class="chip" type="button" data-ageband="${b.key}" aria-pressed="${on}"
+        ${!on && atCap ? "disabled" : ""} style="--sw:${on ? `var(${ageSlotOf.get(b.key) || "--s1"})` : "transparent"}">
+        <i class="swatch"></i>${b.navn}</button>`;
+    }).join("")}</div>
+    <p class="cap-note" style="margin:6px 0 0">${note}</p>
+  </div>`;
+}
+
+function ageReferenceControls(ind) {
+  const disabled = ind === "folkemengde" && state.norm === "abs";
+  const selected = new Set(state.ageReferences);
+  const atCap = selected.size >= 2;
+  const dataNote = AGE_REFERENCE_DATA.size
+    ? "Velg inntil to nasjonale referanser. Sentralitetsgruppene følger SSBs offisielle inndeling og finnes fra 2018."
+    : "Referansedata må hentes én gang fra SSB tabell 07459 og KLASS i admin.";
+  return `<div class="field" style="margin:2px 0 12px">
+    <span class="field-label">Sammenlign med</span>
+    <div class="chips">${AGE_REFERENCES.map(ref => {
+      const on = selected.has(ref.key);
+      return `<button class="chip" type="button" data-ageref="${ref.key}" aria-pressed="${on}"
+        ${disabled || (!on && atCap) ? "disabled" : ""}>
+        ${ref.navn}</button>`;
+    }).join("")}</div>
+    <p class="cap-note" style="margin:6px 0 0">${disabled
+      ? "Velg andel, per 1 000 eller indeks for å sammenligne områder med ulik folkemengde."
+      : dataNote}</p>
+  </div>`;
+}
+
+function legendHTML(series) {
+  if (series.length < 2) return "";
+  return `<div class="legend">` + series.map(s =>
+    `<span class="item"><i class="key ${s.total ? "total" : ""} ${s.comparison ? "comparison" : ""}" style="--k:${s.farge}"></i>${s.navn}</span>`
+  ).join("") + `</div>`;
+}
+
+function tilesHTML(ind, series, norm, valueOf) {
+  const getV = valueOf ?? ((k, y) => value(k, y, ind, norm, state.from));
+  const yEnd = state.to, yStart = state.from;
+  return `<div class="tiles">` + series.map(s => {
+    const a = getV(s.key, yStart);
+    const b = getV(s.key, yEnd);
+    let delta = "";
+    if (a != null && b != null && a !== 0) {
+      const pct = (b - a) / Math.abs(a) * 100;
+      const cls = pct >= 0 ? "up" : "down";
+      delta = `<span class="t-delta ${cls}">${pct >= 0 ? "▲" : "▼"} ${nf(Math.abs(pct), 1)} %</span>`;
+    }
+    return `<div class="tile">
+      <span class="t-name"><i class="key ${s.comparison ? "comparison" : ""}" style="--k:${s.farge}"></i><span>${s.navn}</span></span>
+      <span><span class="t-val">${fmt(b, ind, norm)}</span>${delta}</span>
+    </div>`;
+  }).join("") + `</div>`;
+}
+
+function tableHTML(ind, series, ys, norm, valueOf) {
+  const getV = valueOf ?? ((k, y) => value(k, y, ind, norm, state.from));
+  const head = `<tr><th>Region</th>${ys.map(y => `<th>${y}</th>`).join("")}<th>Kilde</th></tr>`;
+  const body = series.map(s => {
+    const cells = ys.map(y => `<td>${fmt(getV(s.key, y), ind, norm)}</td>`).join("");
+    const nm = s.total ? `Finnmark samlet`
+      : REGION_BY_KEY[s.key]
+        ? `${REGION_BY_KEY[s.key].navn} <span class="sami">${REGION_BY_KEY[s.key].sami}</span>`
+        : s.navn;
+    return `<tr class="${s.total ? "total-row" : ""}">
+      <td><span class="muni-key"><i class="key" style="--k:${s.farge}"></i>${nm}</span></td>
+      ${cells}<td>${kildeHTML(IND[ind].kilde, true)}</td></tr>`;
+  }).join("");
+  return `<div class="table-scroll"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+}
+
+function indPicker(tema, current) {
+  const opts = Object.entries(IND).filter(([, m]) => m.tema === tema)
+    .map(([k, m]) => `<option value="${k}"${k === current ? " selected" : ""}>${m.navn}</option>`).join("");
+  return `<select data-indpicker="${tema}" aria-label="Indikator">${opts}</select>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   8. FANER
+   ═════════════════════════════════════════════════════════════════════════ */
+const TABS = [
+  { id: "befolkning",   navn: "Befolkning" },
+  { id: "okonomi",      navn: "Kommuneøkonomi" },
+  { id: "naering",      navn: "Næring og arbeidsplasser" },
+  { id: "valg",         navn: "Valgresultat" },
+  { id: "valganalyser", navn: "Valganalyser" },
+  { id: "sammen",       navn: "Sammenstillinger" },
+];
+
+const BLURB = {
+  befolkning: "Folketall og demografisk sammensetning. Fødselsoverskudd og nettoflytting forklarer hvorfor kurven for folkemengde beveger seg.",
+  okonomi: "Nøkkeltall fra kommuneregnskapene. Netto driftsresultat og disposisjonsfond sier noe om handlingsrom; lånegjeld sier noe om bindinger.",
+  naering: "Sysselsetting og arbeidsplasser. Pendlingsbalansen viser om kommunen har flere arbeidsplasser enn sysselsatte innbyggere — over 100 betyr innpendling.",
+};
+
+function renderThemePanel(tema, host) {
+  if (!state.showTotal && !state.selected.length) {
+    host.innerHTML = `
+      ${tema === "befolkning" ? befViewSwitch() : ""}
+      <section class="card">
+        <div class="empty">Velg minst én kommune, eller «Finnmark samlet», for å vise grafen.</div>
+      </section>`;
+    return;
+  }
+
+  const ind = state.ind[tema];
+  const ys = years();
+  const byAge = ageSeriesActive(tema, ind);
+
+  /* To seriemodus: aldersgrupper (kommunene summeres) eller kommuner. */
+  const primarySeries = byAge ? ageSeries() : activeSeries();
+  const comparisonSeries = byAge ? ageReferenceSeries(primarySeries, ind, state.norm) : [];
+  const series = [...primarySeries, ...comparisonSeries];
+  const valueOf = byAge ? ((k, y) => ageChartValue(k, y, state.norm, ind)) : undefined;
+  const region = byAge ? sumRegions() : null;
+
+  const tittel = byAge
+    ? (ind === "andelbefolkning" ? "Andel av befolkningen etter aldersgruppe" : "Folkemengde etter aldersgruppe")
+    : IND[ind].navn;
+  const beskrivelse = byAge
+    ? `Én linje per aldersgruppe. Kommunene i utvalget summeres til én region, så
+       kurvene viser hvordan hver kohort har utviklet seg i området samlet —
+       ikke hvordan kommunene skiller seg fra hverandre.`
+    : BLURB[tema];
+
+  host.innerHTML = `
+    ${tema === "befolkning" ? befViewSwitch() : ""}
+    <div class="split">
+      <section class="card">
+        <div class="card-head">
+          <h2>${tittel}</h2>
+          <span class="unit">${unitFor(ind, state.norm)}</span>
+        </div>
+        <p class="desc">${beskrivelse}</p>
+        ${region ? `<p class="cap-note" style="margin:-6px 0 12px">
+          <strong style="color:var(--ink-2)">Region:</strong> ${region.label}</p>` : ""}
+        <div style="margin-bottom:10px">${indPicker(tema, ind)}</div>
+        ${tema === "befolkning" ? ageChips(ind) : ""}
+        ${byAge ? ageReferenceControls(ind) : ""}
+        ${byAge ? "" : scaleHint(ind, series, state.norm)}
+        ${legendHTML(series)}
+        <div data-chart></div>
+        <div class="source">
+          <span>Kilde: ${kildeHTML(IND[ind].kilde)}${comparisonSeries.length ? ` + ${kildeHTML("ssb:11805")}` : ""}</span>
+          <span>Hentet: ${byAge ? hentet("__struktur") : hentet(ind)}</span>
+          <span>${state.from}–${state.to}</span>
+        </div>
+        <details class="tableview"><summary>Vis tallene i tabell</summary>
+          ${tableHTML(ind, series, ys, state.norm, valueOf)}
+        </details>
+      </section>
+
+      <aside class="card">
+        <div class="card-head"><h2>Nivå ${state.to}</h2></div>
+        <p class="desc">Endring vist mot ${state.from}.</p>
+        ${series.length
+          ? tilesHTML(ind, series, state.norm, valueOf)
+          : `<p class="empty">${byAge ? "Ingen aldersgrupper valgt." : "Ingen regioner valgt."}</p>`}
+      </aside>
+    </div>`;
+
+  lineChart(host.querySelector("[data-chart]"), { ind, series, ys, norm: state.norm, valueOf });
+}
+
+/* ── Befolkningspyramide: alder × kjønn, med endring over perioden ───────── */
+function popRange(region, ar, lo, hi) {
+  return AGE_BANDS.filter(b => b.lo >= lo && b.lo <= hi)
+    .reduce((s, b) => s + popBand(region, ar, b.key), 0);
+}
+
+function renderPyramid(host) {
+  const reg = state.pyrRegion;
+  const regNavn = reg === TOTAL_KEY ? "Finnmark samlet" : REGION_BY_KEY[reg].navn;
+  const yNow = state.to, yBase = state.from;
+  const pct = state.pyrMode === "prosent";
+
+  const totNow = popTotal(reg, yNow) || 1;
+  const totBase = popTotal(reg, yBase) || 1;
+  const val = (ar, kj, band) => {
+    const raw = pop(reg, ar, kj, band);
+    return pct ? raw / (ar === yNow ? totNow : totBase) * 100 : raw;
+  };
+
+  /* Felles skala for begge år og begge kjønn — ellers kan ikke omrisset
+     for basisåret sammenlignes med søylene for sluttåret. */
+  let maxV = 0;
+  for (const b of AGE_BANDS) for (const ar of [yNow, yBase]) for (const kj of ["m", "k"]) {
+    maxV = Math.max(maxV, val(ar, kj, b.key));
+  }
+  maxV = maxV || 1;
+
+  const W = 760, H = 446, mt = 30, mb = 38, side = 8, mid = 54;
+  const half = (W - side * 2 - mid) / 2;
+  const cxL = side + half, cxR = side + half + mid;
+  const ih = H - mt - mb;
+  const bandH = ih / AGE_BANDS.length;
+  const barH = Math.max(6, bandH - 5);          /* 5px luft mellom båndene */
+
+  const yOf = i => mt + (AGE_BANDS.length - 1 - i) * bandH;
+  const len = v => (v / maxV) * half;
+
+  const ticks = niceTicks(0, maxV, 4).filter(t => t >= 0 && t <= maxV * 1.001);
+  let grid = "", axis = "";
+  for (const t of ticks) {
+    const d = len(t);
+    for (const [cx, dir] of [[cxL, -1], [cxR, 1]]) {
+      grid += `<line class="gridline" x1="${cx + dir * d}" x2="${cx + dir * d}" y1="${mt}" y2="${mt + ih}"/>`;
+      axis += `<text x="${cx + dir * d}" y="${mt + ih + 15}" text-anchor="middle">${
+        pct ? nf(t, 1) : nf(t, 0)}</text>`;
+    }
+  }
+
+  let bars = "", ghost = "", labels = "";
+  const gp = { m: [], k: [] };
+
+  AGE_BANDS.forEach((b, i) => {
+    const y = yOf(i), yc = y + bandH / 2, yb = y + (bandH - barH) / 2;
+
+    for (const [kj, cx, dir, col] of [["m", cxL, -1, "var(--s1)"], ["k", cxR, 1, "var(--s2)"]]) {
+      const v = val(yNow, kj, b.key);
+      const L = len(v);
+      const x = dir < 0 ? cx - L : cx;
+      bars += `<rect x="${x.toFixed(1)}" y="${yb.toFixed(1)}" width="${L.toFixed(1)}" height="${barH.toFixed(1)}"
+        rx="1.5" fill="${col}"><title>${kj === "m" ? "Menn" : "Kvinner"} ${b.navn} (${yNow}): ${
+        pct ? nf(v, 2) + " %" : nf(v, 0) + " personer"}</title></rect>`;
+
+      const vb = val(yBase, kj, b.key), Lb = len(vb);
+      const xb = dir < 0 ? cx - Lb : cx + Lb;
+      /* Båndene itereres nedenfra og opp (i = 0 er yngst og nederst), så
+         konturen må gå inn ved båndets underkant og ut ved overkanten —
+         ellers krysser stien seg selv i stedet for å bli en trapp. */
+      gp[kj].push(`${xb.toFixed(1)},${(y + bandH).toFixed(1)}`, `${xb.toFixed(1)},${y.toFixed(1)}`);
+    }
+
+    labels += `<text x="${(cxL + mid / 2 + 0.5).toFixed(1)}" y="${(yc + 3.5).toFixed(1)}"
+      text-anchor="middle" style="fill:var(--ink-2)">${b.navn}</text>`;
+  });
+
+  for (const kj of ["m", "k"]) {
+    ghost += `<polyline points="${gp[kj].join(" ")}" fill="none" stroke="var(--ink-muted)"
+      stroke-width="1.5" stroke-dasharray="3 2.5" stroke-linejoin="round"/>`;
+  }
+
+  /* Nøkkeltall — hovedgruppene, ikke femårsbåndene. */
+  const groups = [
+    { navn: "0–19 år",  lo: 0,  hi: 15 },
+    { navn: "20–66 år", lo: 20, hi: 65 },
+    { navn: "67 år +",  lo: 65, hi: 90 },
+  ];
+  const tiles = groups.map(g => {
+    const a = popRange(reg, yBase, g.lo, g.hi), b2 = popRange(reg, yNow, g.lo, g.hi);
+    const sa = a / totBase * 100, sb = b2 / totNow * 100;
+    const dpp = sb - sa;
+    return `<div class="tile">
+      <span class="t-name"><span>${g.navn}</span></span>
+      <span><span class="t-val">${nf(b2, 0)}</span>
+      <span class="t-delta">${nf(sb, 1)} %</span>
+      <span class="t-delta ${dpp >= 0 ? "up" : "down"}">${dpp >= 0 ? "▲" : "▼"} ${nf(Math.abs(dpp), 1)} pp</span></span>
+    </div>`;
+  }).join("");
+
+  const kvNow = AGE_BANDS.reduce((s, b) => s + pop(reg, yNow, "k", b.key), 0);
+  const kvBase = AGE_BANDS.reduce((s, b) => s + pop(reg, yBase, "k", b.key), 0);
+  const yrkes = popRange(reg, yNow, 20, 65) || 1;
+  const yrkesB = popRange(reg, yBase, 20, 65) || 1;
+  const fbNow = (popRange(reg, yNow, 0, 15) + popRange(reg, yNow, 65, 90)) / yrkes * 100;
+  const fbBase = (popRange(reg, yBase, 0, 15) + popRange(reg, yBase, 65, 90)) / yrkesB * 100;
+
+  const extra = `
+    <div class="tile"><span class="t-name"><span>Folkemengde</span></span>
+      <span><span class="t-val">${nf(totNow, 0)}</span>
+      <span class="t-delta ${totNow >= totBase ? "up" : "down"}">${totNow >= totBase ? "▲" : "▼"} ${
+        nf(Math.abs((totNow - totBase) / totBase * 100), 1)} %</span></span></div>
+    <div class="tile"><span class="t-name"><span>Kvinneandel</span></span>
+      <span><span class="t-val">${nf(kvNow / totNow * 100, 1)} %</span>
+      <span class="t-delta">${nf(kvBase / totBase * 100, 1)} % i ${yBase}</span></span></div>
+    <div class="tile"><span class="t-name"><span>Forsørgerbrøk</span></span>
+      <span><span class="t-val">${nf(fbNow, 1)}</span>
+      <span class="t-delta">${nf(fbBase, 1)} i ${yBase}</span></span></div>`;
+
+  const rows = AGE_BANDS.slice().reverse().map(b => {
+    const m = pop(reg, yNow, "m", b.key), k = pop(reg, yNow, "k", b.key), t = m + k;
+    const tb = popBand(reg, yBase, b.key);
+    const sh = t / totNow * 100, shb = tb / totBase * 100;
+    const d = t - tb, dpp = sh - shb;
+    return `<tr>
+      <td>${b.navn}</td>
+      <td>${nf(m, 0)}</td><td>${nf(k, 0)}</td><td>${nf(t, 0)}</td>
+      <td>${nf(sh, 2)}</td>
+      <td>${nf(tb, 0)}</td><td>${nf(shb, 2)}</td>
+      <td class="${d >= 0 ? "up" : "down"}">${d >= 0 ? "+" : "−"}${nf(Math.abs(d), 0)}</td>
+      <td class="${dpp >= 0 ? "up" : "down"}">${dpp >= 0 ? "+" : "−"}${nf(Math.abs(dpp), 2)}</td>
+    </tr>`;
+  }).join("");
+
+  host.innerHTML = `
+    ${befViewSwitch()}
+    <div class="split">
+      <section class="card">
+        <div class="card-head">
+          <h2>Alders- og kjønnsfordeling — ${regNavn}</h2>
+          <span class="unit">${pct ? "% av folkemengden" : "personer"} · ${yNow}</span>
+        </div>
+        <p class="desc">Søylene viser ${yNow}. Den stiplede konturen er ${yBase}, så forskyvningen
+        mellom årene kan leses direkte. Bytt til prosent når folkemengden har endret seg —
+        da er de to årene sammenlignbare i form, ikke bare i størrelse.</p>
+
+        <div class="rail-row" style="gap:18px;margin-bottom:12px">
+          <select data-pyrregion aria-label="Region">
+            <option value="${TOTAL_KEY}"${reg === TOTAL_KEY ? " selected" : ""}>Finnmark samlet</option>
+            ${REGIONS.map(r => `<option value="${r.key}"${reg === r.key ? " selected" : ""}>${r.navn}</option>`).join("")}
+          </select>
+          <div class="seg" role="group" aria-label="Måleform for pyramiden">
+            <button type="button" data-pyrmode="antall" aria-pressed="${!pct}">Antall</button>
+            <button type="button" data-pyrmode="prosent" aria-pressed="${pct}">Prosent</button>
+          </div>
+        </div>
+
+        <div class="legend">
+          <span class="item"><i class="key" style="--k:var(--s1);height:9px;width:9px;border-radius:2px"></i>Menn ${yNow}</span>
+          <span class="item"><i class="key" style="--k:var(--s2);height:9px;width:9px;border-radius:2px"></i>Kvinner ${yNow}</span>
+          <span class="item"><i class="key" style="--k:var(--ink-muted);height:0;border-top:1.5px dashed var(--ink-muted);width:14px"></i>${yBase} (kontur)</span>
+        </div>
+
+        <svg class="chart" viewBox="0 0 ${W} ${H}" role="img">
+          <title>Befolkningspyramide for ${regNavn}, ${yNow} sammenlignet med ${yBase}</title>
+          ${grid}
+          <text x="${(cxL - half / 2).toFixed(1)}" y="18" text-anchor="middle"
+            style="fill:var(--ink-2);font-weight:600">Menn</text>
+          <text x="${(cxR + half / 2).toFixed(1)}" y="18" text-anchor="middle"
+            style="fill:var(--ink-2);font-weight:600">Kvinner</text>
+          ${bars}${ghost}${labels}
+          <line class="axisline" x1="${side}" x2="${cxL}" y1="${mt + ih}" y2="${mt + ih}"/>
+          <line class="axisline" x1="${cxR}" x2="${W - side}" y1="${mt + ih}" y2="${mt + ih}"/>
+          ${axis}
+        </svg>
+
+        <div class="source">
+          <span>Kilde: ${kildeHTML("ssb:07459")}</span><span>Hentet: ${hentet("__struktur")}</span>
+          <span>${yBase} → ${yNow}</span>
+        </div>
+
+        <details class="tableview"><summary>Vis antall og andel i tabell</summary>
+          <div class="table-scroll"><table>
+            <thead><tr>
+              <th>Aldersgruppe</th>
+              <th>Menn ${yNow}</th><th>Kvinner ${yNow}</th><th>Totalt ${yNow}</th><th>Andel ${yNow} (%)</th>
+              <th>Totalt ${yBase}</th><th>Andel ${yBase} (%)</th>
+              <th>Endring</th><th>Endring (pp)</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table></div>
+        </details>
+      </section>
+
+      <aside class="card">
+        <div class="card-head"><h2>Hovedgrupper ${yNow}</h2></div>
+        <p class="desc">Andel av folkemengden, med endring i prosentpoeng fra ${yBase}.</p>
+        <div class="tiles">${tiles}${extra}</div>
+      </aside>
+    </div>`;
+}
+
+function befViewSwitch() {
+  return `<div class="seg" role="group" aria-label="Visning" style="align-self:start">
+    <button type="button" data-befview="struktur" aria-pressed="${state.befView === "struktur"}">Alder og kjønn</button>
+    <button type="button" data-befview="tidsserie" aria-pressed="${state.befView === "tidsserie"}">Tidsserie</button>
+  </div>`;
+}
+
+/* ── Valg ───────────────────────────────────────────────────────────────── */
+/**
+ * Dispatcher for hele valg-fanen: én visningsvelger øverst (Oppslutning /
+ * Mandatfordeling / Utvikling over tid), samme delegerte click-mønster som
+ * resten av siden — bare state.valgVisning endres, render() gjør resten.
+ */
+function renderValg(host) {
+  host.innerHTML = `
+    <div class="rail-row" style="gap:18px;margin-bottom:16px">
+      <div class="seg" role="group" aria-label="Visning">
+        <button type="button" data-valgvisning="oppslutning" aria-pressed="${state.valgVisning === "oppslutning"}">Oppslutning</button>
+        <button type="button" data-valgvisning="mandater" aria-pressed="${state.valgVisning === "mandater"}">Mandatfordeling</button>
+        <button type="button" data-valgvisning="utvikling" aria-pressed="${state.valgVisning === "utvikling"}">Utvikling over tid</button>
+      </div>
+    </div>
+    <div id="valgInnhold"></div>`;
+  const inner = host.querySelector("#valgInnhold");
+  if (state.valgVisning === "mandater") renderHemicycle(inner);
+  else if (state.valgVisning === "utvikling") renderValgTidsserie(inner);
+  else renderValgOppslutning(inner);
+}
+
+function renderValgOppslutning(host) {
+  const v = VALG[state.valgtype];
+  const reg = state.valgRegion;
+  const regNavn = reg === TOTAL_KEY ? "Finnmark samlet" : REGION_BY_KEY[reg].navn;
+  const andel = (parti, ar) => valgAndelAggregert(state.valgtype, reg, ar, parti);
+
+  const W = 700, H = 300, ml = 44, mr = 16, mt = 12, mb = 34;
+  const iw = W - ml - mr, ih = H - mt - mb;
+  const bw = Math.min(70, iw / v.ar.length * 0.56);
+
+  let bars = "";
+  v.ar.forEach((ar, i) => {
+    const cx = ml + (i + 0.5) * (iw / v.ar.length);
+    let acc = 0;
+    PARTIER.forEach(p => {
+      const a = andel(p.key, ar) ?? 0;
+      const y0 = mt + ih - (acc + a) / 100 * ih;
+      const hgt = Math.max(0, a / 100 * ih - 2);   /* 2px mellomrom mellom segmenter */
+      bars += `<rect x="${cx - bw / 2}" y="${y0}" width="${bw}" height="${hgt}" rx="1.5"
+                fill="${p.farge}"><title>${p.navn} ${ar}: ${nf(a, 1)} %</title></rect>`;
+      if (a >= 7) {
+        bars += `<text class="seglabel" x="${cx}" y="${y0 + hgt / 2 + 3.5}"
+                  text-anchor="middle">${p.navn}</text>`;
+      }
+      acc += a;
+    });
+    bars += `<text x="${cx}" y="${H - 12}" text-anchor="middle">${ar}</text>`;
+  });
+
+  let gridl = "";
+  for (let p = 0; p <= 100; p += 25) {
+    const y = mt + ih - p / 100 * ih;
+    gridl += `<line class="gridline" x1="${ml}" x2="${ml + iw}" y1="${y}" y2="${y}"/>
+              <text x="${ml - 8}" y="${y + 3.5}" text-anchor="end">${p} %</text>`;
+  }
+
+  const tblHead = `<tr><th>Parti</th>${v.ar.map(a => `<th>${a}</th>`).join("")}<th>Kilde</th></tr>`;
+  const tblBody = PARTIER.map(p =>
+    `<tr><td><span class="muni-key"><i class="key" style="--k:${p.farge}"></i>${p.navn}</span></td>` +
+    v.ar.map(a => `<td>${nf(andel(p.key, a), 1)}</td>`).join("") +
+    `<td><span class="pill">${v.kilde}</span></td></tr>`
+  ).join("");
+
+  host.innerHTML = `
+    <section class="card">
+      <div class="card-head">
+        <h2>${v.navn} — ${regNavn}</h2>
+        <span class="unit">andel av stemmene, %</span>
+      </div>
+      <p class="desc">Valg er ikke en årlig tidsserie, men diskrete hendelser — derfor stablede
+      andeler per valgår i stedet for linjer. Finnmark samlet er folketallsvektet.</p>
+
+      <div class="rail-row" style="gap:18px;margin-bottom:12px">
+        <div class="seg" role="group" aria-label="Valgtype">
+          <button type="button" data-valgtype="kommune" aria-pressed="${state.valgtype === "kommune"}">Kommunestyrevalg</button>
+          <button type="button" data-valgtype="storting" aria-pressed="${state.valgtype === "storting"}">Stortingsvalg</button>
+          <button type="button" data-valgtype="fylkesting" aria-pressed="${state.valgtype === "fylkesting"}">Fylkestingsvalg</button>
+        </div>
+        <select data-valgregion aria-label="Region">
+          <option value="${TOTAL_KEY}"${reg === TOTAL_KEY ? " selected" : ""}>Finnmark samlet</option>
+          ${REGIONS.map(r => `<option value="${r.key}"${reg === r.key ? " selected" : ""}>${r.navn}</option>`).join("")}
+        </select>
+      </div>
+
+      <div class="legend">${PARTIER.map(p =>
+        `<span class="item"><i class="key" style="--k:${p.farge}"></i>${p.navn}</span>`).join("")}</div>
+
+      <svg class="chart" viewBox="0 0 ${W} ${H}" role="img">
+        <title>${v.navn} i ${regNavn}, partienes andel per valgår</title>
+        ${gridl}${bars}
+        <line class="axisline" x1="${ml}" x2="${ml + iw}" y1="${mt + ih}" y2="${mt + ih}"/>
+      </svg>
+
+      <div class="source"><span>Kilde: ${kildeHTML(v.kilde)}</span><span>Hentet: ${(SSB.valg?.resultater ?? []).some(r => r[0] === state.valgtype) ? hentet("__valg") : "—"}</span></div>
+
+      <details class="tableview" open><summary>Vis tallene i tabell</summary>
+        <div class="table-scroll"><table><thead>${tblHead}</thead><tbody>${tblBody}</tbody></table></div>
+      </details>
+    </section>`;
+}
+
+/**
+ * Mandatfordeling som halvsirkel — storting/fylkesting, ett valgår av
+ * gangen. Seter plasseres på konsentriske buer (radius-proporsjonal
+ * fordeling per bue, slik at avstanden mellom seter holder seg noenlunde
+ * jevn), og fylles med parti i PARTI_ORDEN-rekkefølge sortert på VINKEL på
+ * tvers av ALLE buene samtidig — slik at hvert parti får en sammenhengende
+ * kile som i referansebildet, ikke én ring per parti.
+ */
+function renderHemicycle(host) {
+  const valgtype = state.hemiValgtype;
+  const v = VALG[valgtype];
+  const ar = v.ar.includes(state.hemiYear) ? state.hemiYear : v.ar[v.ar.length - 1];
+
+  const mandater = mandaterFor(valgtype, ar).slice().sort((a, b) => {
+    const oa = ordenForPartikode(a.kode), ob = ordenForPartikode(b.kode);
+    return oa !== ob ? oa - ob : b.mandater - a.mandater;
+  });
+  const total = mandater.reduce((s, m) => s + m.mandater, 0);
+
+  if (!total) {
+    host.innerHTML = `<section class="card"><p class="empty">Ingen mandatdata for ${v.navn.toLowerCase()} ${ar}.</p></section>`;
+    return;
+  }
+
+  const rows = total <= 10 ? 1 : total <= 25 ? 2 : total <= 50 ? 3 : 4;
+  const r0 = 70, r1 = 200;
+  const rowRadii = Array.from({ length: rows }, (_, i) => rows === 1 ? r1 : r0 + i * (r1 - r0) / (rows - 1));
+  const eksakt = rowRadii.map(r => (r / rowRadii.reduce((a, b) => a + b, 0)) * total);
+  const heltall = eksakt.map(Math.floor);
+  let rest = total - heltall.reduce((a, b) => a + b, 0);
+  eksakt
+    .map((e, i) => ({ i, r: e - heltall[i] }))
+    .sort((a, b) => b.r - a.r)
+    .slice(0, rest)
+    .forEach(({ i }) => heltall[i]++);
+
+  const cx = 260, cy = 230;
+  const seats = [];
+  heltall.forEach((count, ri) => {
+    const r = rowRadii[ri];
+    for (let s = 0; s < count; s++) {
+      const t = count === 1 ? 0.5 : s / (count - 1);
+      const theta = Math.PI - t * Math.PI;
+      seats.push({ x: cx + r * Math.cos(theta), y: cy - r * Math.sin(theta), theta });
+    }
+  });
+  seats.sort((a, b) => b.theta - a.theta);
+
+  let idx = 0;
+  const seatFill = [];
+  for (const m of mandater) {
+    for (let i = 0; i < m.mandater; i++) { seatFill.push({ ...seats[idx], kode: m.kode, navn: m.navn }); idx++; }
+  }
+
+  const seatEls = seatFill.map(s =>
+    `<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="8" fill="${fargeForPartikode(s.kode)}"><title>${s.navn}</title></circle>`
+  ).join("");
+
+  const legendItems = mandater.map(m =>
+    `<span class="item"><i class="key" style="--k:${fargeForPartikode(m.kode)}"></i>${m.navn} (${m.mandater})</span>`
+  ).join("");
+
+  const ekte = [...MANDAT_EKTE.keys()].some(k => k.startsWith(`${valgtype}|${ar}|`));
+
+  host.innerHTML = `
+    <section class="card">
+      <div class="card-head">
+        <h2>${v.navn} — mandatfordeling ${ar}</h2>
+        <span class="unit">${total} mandater</span>
+      </div>
+      <p class="desc">Mandatene fordeles på hele ${valgtype === "storting" ? "valgdistriktet" : "fylket"}, ikke per
+      kommune — derfor ingen regionvelger her.</p>
+
+      <div class="rail-row" style="gap:18px;margin-bottom:12px">
+        <div class="seg" role="group" aria-label="Valgtype">
+          <button type="button" data-hemivalgtype="storting" aria-pressed="${valgtype === "storting"}">Stortingsvalg</button>
+          <button type="button" data-hemivalgtype="fylkesting" aria-pressed="${valgtype === "fylkesting"}">Fylkestingsvalg</button>
+        </div>
+        <select data-hemiyear aria-label="År">
+          ${v.ar.map(y => `<option value="${y}"${y === ar ? " selected" : ""}>${y}</option>`).join("")}
+        </select>
+      </div>
+
+      <svg class="chart" viewBox="0 0 520 250" role="img">
+        <title>${v.navn} ${ar}, mandatfordeling</title>
+        ${seatEls}
+      </svg>
+
+      <div class="legend">${legendItems}</div>
+
+      <div class="source"><span>Kilde: ${kildeHTML(v.kilde)}</span><span>Hentet: ${ekte ? hentet("__valg") : "—"}</span></div>
+    </section>`;
+}
+
+const VALGTYPE_KORT = { kommune: "K", storting: "S", fylkesting: "F" };
+const MARKER_FOR_VALGTYPE = { kommune: "circle", storting: "triangle", fylkesting: "square" };
+
+/**
+ * Oppslutning over tid, én linje per parti×valgtype. Farge bærer parti-
+ * identitet (samme farge uansett valgtype), markørform bærer valgtype-
+ * identitet (sirkel/trekant/kvadrat) — nødvendig når flere valgtyper
+ * overlegges samtidig, siden farge allerede er brukt opp av partiet.
+ * Bruker samme region (state.valgRegion) og periode (state.from/state.to)
+ * som resten av panelet, ikke egne kontroller for det.
+ */
+function renderValgTidsserie(host) {
+  const reg = state.valgRegion;
+  const regNavn = reg === TOTAL_KEY ? "Finnmark samlet" : REGION_BY_KEY[reg].navn;
+
+  const series = [];
+  for (const partiKey of state.trendPartier) {
+    const p = PARTIER.find(x => x.key === partiKey);
+    if (!p) continue;
+    for (const valgtype of state.trendTyper) {
+      series.push({
+        key: `${partiKey}|${valgtype}`,
+        navn: state.trendTyper.length > 1 ? `${p.navn} (${VALGTYPE_KORT[valgtype]})` : p.navn,
+        farge: p.farge,
+        valgtype,
+      });
+    }
+  }
+
+  const ys = [...new Set(state.trendTyper.flatMap(vt => VALG[vt].ar))]
+    .filter(y => y >= state.from && y <= state.to)
+    .sort((a, b) => a - b);
+
+  const partiChips = PARTIER.map(p =>
+    `<button type="button" data-trendparti="${p.key}" aria-pressed="${state.trendPartier.includes(p.key)}">
+      <i class="key" style="--k:${p.farge}"></i>${p.navn}</button>`
+  ).join("");
+  const typeChips = Object.entries(VALG).map(([vk, v]) =>
+    `<button type="button" data-trendtype="${vk}" aria-pressed="${state.trendTyper.includes(vk)}">${v.navn}</button>`
+  ).join("");
+
+  host.innerHTML = `
+    <section class="card">
+      <div class="card-head">
+        <h2>Oppslutning over tid — ${regNavn}</h2>
+        <span class="unit">andel av stemmene, %</span>
+      </div>
+      <p class="desc">Ulik prikkform skiller valgtype fra hverandre når flere overlegges samtidig
+      (● kommunestyre, ▲ storting, ■ fylkesting) — farge er alltid partiet.</p>
+
+      <div class="rail-row" style="gap:18px;margin-bottom:12px;flex-wrap:wrap">
+        <select data-valgregion aria-label="Region">
+          <option value="${TOTAL_KEY}"${reg === TOTAL_KEY ? " selected" : ""}>Finnmark samlet</option>
+          ${REGIONS.map(r => `<option value="${r.key}"${reg === r.key ? " selected" : ""}>${r.navn}</option>`).join("")}
+        </select>
+        <div class="seg" role="group" aria-label="Valgtype">${typeChips}</div>
+      </div>
+      <div class="seg" role="group" aria-label="Partier" style="flex-wrap:wrap;margin-bottom:12px">${partiChips}</div>
+
+      <div id="valgTrendChart"></div>
+    </section>`;
+
+  const chartHost = host.querySelector("#valgTrendChart");
+  if (!series.length || !ys.length) {
+    chartHost.innerHTML = `<p class="empty">Velg minst ett parti og én valgtype i kontrollraden over.</p>`;
+    return;
+  }
+  lineChart(chartHost, {
+    ind: "valgandel",
+    series,
+    ys,
+    norm: "abs",
+    valueOf: (compositeKey, year) => {
+      const [parti, valgtype] = compositeKey.split("|");
+      return valgAndelAggregert(valgtype, reg, year, parti);
+    },
+    markerShape: s => MARKER_FOR_VALGTYPE[s.valgtype] || "circle",
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VALGANALYSER — nasjonale tall fra ekstern forskningskilde, ikke SSB
+   ═════════════════════════════════════════════════════════════════════════
+   Alt under er hentet fra boken «Konflikt og mobilisering. En studie av
+   stortingsvalget 2025» (Johannes Bergh og Atle H. Haugsgjerd, red.,
+   Institutt for samfunnsforskning / Cappelen Damm Akademisk, 2026), utgitt
+   åpent under CC-BY-NC-ND 4.0, DOI: https://doi.org/10.23865/cdf.296.
+
+   Dette er IKKE en SSB-kilde og hentes ALDRI live — tallene er transkribert
+   direkte fra bokens trykte tabeller og figurer, og endres bare ved manuell
+   redigering av denne filen. En akademisk bokutgivelse har ingen API å
+   polle mot og publiseres ikke på nytt mellom sidevisninger, så den hører
+   ikke hjemme i /api/ssb-arkitekturen sammen med de live-hentede fanene.
+
+   Kun nasjonale tall her, slik brukeren ba om — Finnmark-spesifikke tall
+   hører hjemme i «Valgresultat», som allerede dekker regionen direkte fra
+   SSB/valgresultat.no. Der boken bare beskriver en figur i ord uten trykte
+   tallverdier (rene diagrambilder uten tekstlag), er den droppet her
+   fremfor å gjette tall — se kildekommentaren i hvert enkelt datasett. */
+const VA_PARTIFARGE = { ...PARTI_FARGE_KODE, ANDRE: "var(--ink-muted)" };
+
+const VALGANALYSE = {
+  valgresultat: {
+    ar: [2017, 2021, 2025],
+    partier: [
+      { kode: "RØDT",  navn: "Rødt",  data: [2.4, 4.7, 5.3] },
+      { kode: "SV",    navn: "SV",    data: [6.0, 7.6, 5.6] },
+      { kode: "A",     navn: "Ap",    data: [27.4, 26.3, 28.0] },
+      { kode: "SP",    navn: "Sp",    data: [10.3, 13.5, 5.6] },
+      { kode: "MDG",   navn: "MDG",   data: [3.2, 3.9, 4.7] },
+      { kode: "KRF",   navn: "KrF",   data: [4.2, 3.8, 4.2] },
+      { kode: "V",     navn: "Venstre", data: [4.4, 4.6, 3.7] },
+      { kode: "H",     navn: "Høyre", data: [25.0, 20.4, 14.6] },
+      { kode: "FRP",   navn: "FrP",   data: [15.2, 11.6, 23.8] },
+      { kode: "ANDRE", navn: "Andre", data: [1.9, 3.6, 4.5] },
+    ],
+    mandater: [
+      { navn: "Rødt",   data: [1, 8, 9] },
+      { navn: "SV",     data: [11, 13, 9] },
+      { navn: "Ap",     data: [49, 48, 53] },
+      { navn: "Sp",     data: [19, 28, 9] },
+      { navn: "MDG",    data: [1, 3, 8] },
+      { navn: "KrF",    data: [8, 3, 7] },
+      { navn: "Venstre",data: [8, 8, 3] },
+      { navn: "Høyre",  data: [45, 36, 24] },
+      { navn: "FrP",    data: [27, 21, 47] },
+      { navn: "Andre",  data: [0, 1, 0] },
+    ],
+    kilde: "Introduksjon, «Høyrebølge, men en rødgrønn seier», Johannes Bergh og Atle H. Haugsgjerd, s. 15 (tabell 0.1 og 0.2)",
+  },
+  velgervandring: {
+    segmenter: [
+      { navn: "Stemte samme parti begge ganger", verdi: 61, farge: "var(--s1)" },
+      { navn: "Byttet parti innad i blokk",       verdi: 24, farge: "var(--s4)" },
+      { navn: "Byttet over blokkgrensen",         verdi: 11, farge: "var(--s8)" },
+      { navn: "Inn/ut av «andre»-gruppen",        verdi: 4,  farge: "var(--ink-muted)" },
+    ],
+    notat: "55 % av alle stemmeberettigede endret stemmegivning mellom 2021 og 2025 når inn/ut av hjemmesittergruppen regnes med — den høyeste andelen på 60 år. Tallene til venstre gjelder de 61 % av velgerne som stemte ved begge valg.",
+    kilde: "Kap. 6, «Skiftende preferanser: Velgeroverganger ved stortingsvalget 2025», Johannes Bergh, Atle H. Haugsgjerd og Rune Karlsen, s. 156–158",
+  },
+  deltakelse: {
+    ar: [1981, 1985, 1989, 1993, 1997, 2001, 2005, 2009, 2013, 2017, 2021, 2025],
+    total:   [84.0, 83.2, 83.2, 75.8, 78.3, 75.5, 76.4, 77.4, 78.2, 78.2, 77.2, 80.0],
+    forhand: [9, 10, 10, 10, 19, 20, 18, 24, 30, 36, 58, 63],
+    kilde: "Introduksjon, Bergh og Haugsgjerd, s. 18–19 (figur 0.4)",
+    grupper: {
+      kilde: "Kap. 2, «Hvem stemte? Sosial bakgrunn og valgdeltakelse over tid», Peter Egge Langsæther og Johannes Bergh, s. 60 (figur 2.1)",
+      kjonnAlder: [
+        { navn: "Alle",     v2021: 77.2, v2025: 80.0 },
+        { navn: "Menn",     v2021: 75.6, v2025: 78.7 },
+        { navn: "Kvinner",  v2021: 78.7, v2025: 81.2 },
+        { navn: "18–19 år", v2021: 71.7, v2025: 77.4 },
+        { navn: "20–24 år", v2021: 65.4, v2025: 75.3 },
+        { navn: "25–44 år", v2021: 72.0, v2025: 75.9 },
+        { navn: "45–66 år", v2021: 82.3, v2025: 83.3 },
+        { navn: "67–79 år", v2021: 85.0, v2025: 85.7 },
+        { navn: "80+ år",   v2021: 70.3, v2025: 74.7 },
+      ],
+      utdanningBakgrunn: [
+        { navn: "Grunnskole",               v2021: 61.1, v2025: 65.5 },
+        { navn: "Videregående",             v2021: 77.5, v2025: 80.4 },
+        { navn: "Høyere utdanning",         v2021: 88.0, v2025: 89.8 },
+        { navn: "Norsk/øvrig bakgrunn",     v2021: 79.7, v2025: 83.0 },
+        { navn: "Innvandrere",              v2021: 50.3, v2025: 56.0 },
+        { navn: "Norskfødt, innv.foreldre", v2021: 51.5, v2025: 59.9 },
+      ],
+    },
+  },
+  kjonnsgap: {
+    ar: [1969, 1973, 1977, 1981, 1985, 1989, 1993, 1997, 2001, 2005, 2009, 2013, 2017, 2021, 2025],
+    alle: [-7, -7, -3, -4, 2, 4, 4, 2, 7, 6, 10, 8, 10, 9, 16],
+    kilde: "Kap. 9, «Kjønnsgap i stemmegivning: En tredje bølge?», Johannes Bergh og Stine Hesstvedt, s. 215 (figur 9.1) — borgerlig oppslutning, menn minus kvinner i prosentpoeng",
+    generasjon: [
+      { navn: "Boomere",      verdi: 7.8,  farge: "var(--s1)" },
+      { navn: "Generasjon X", verdi: 10.4, farge: "var(--s2)" },
+      { navn: "Millennials",  verdi: 12.9, farge: "var(--s3)" },
+      { navn: "Generasjon Z", verdi: 31.0, farge: "var(--s8)" },
+    ],
+    generasjonKilde: "Kap. 9, Bergh og Hesstvedt, s. 219 (tabell 9.1) — snitt over alle aldersgrupper i valget 2025",
+  },
+  sakseierskap: {
+    ar: [2005, 2009, 2013, 2017, 2021, 2025],
+    saker: [
+      { navn: "Skatter og avgifter",      farge: "var(--s1)", data: [17, 15, 14, 17, 18, 25] },
+      { navn: "Helse",                     farge: "var(--s2)", data: [15, 19, 23, 12, 15, 18] },
+      { navn: "Utenriks- og forsvarspol.", farge: "var(--s3)", data: [3, 1, 1, 4, 1, 15] },
+      { navn: "Økonomi og sysselsetting",  farge: "var(--s4)", data: [13, 12, 8, 13, 12, 15] },
+      { navn: "Miljø og klima",            farge: "var(--s5)", data: [8, 20, 14, 19, 30, 13] },
+      { navn: "Innvandring",               farge: "var(--s6)", data: [6, 16, 12, 23, 7, 11] },
+      { navn: "Skole og utdanning",        farge: "var(--s7)", data: [32, 29, 22, 17, 11, 10] },
+    ],
+    kilde: "Kap. 5, «Dagsorden og sakseierskap», Johannes Bergh, Stine Hesstvedt, Rune Karlsen og Therese Lunde, s. 136 (tabell 5.1) — andel velgere som oppga saken som viktigst",
+  },
+  tillit: {
+    institusjoner: [
+      { navn: "Domstolene",        verdi: 7.2, farge: "var(--s1)" },
+      { navn: "Stortinget",        verdi: 6.3, farge: "var(--s2)" },
+      { navn: "Regjeringen",       verdi: 6.0, farge: "var(--s3)" },
+      { navn: "Politiske partier", verdi: 5.1, farge: "var(--s4)" },
+      { navn: "Mediene",           verdi: 4.7, farge: "var(--s5)" },
+    ],
+    institusjonerKilde: "Kap. 17, «Politisk tillit under press i Norge?», Atle H. Haugsgjerd, Staffan Kumlin og Jonas Linde, s. 399 (figur 17.1) — gjennomsnitt over målingene 2005–2025 på en skala 0–10. Nedgangen fra 2021 til 2025 er signifikant for alle fem, størst for regjeringen (−0,55) og partiene (−0,40).",
+    politikere: { ar: [2021, 2025], verdi: [4.8, 4.1] },
+    politikereKilde: "Kap. 17, Haugsgjerd, Kumlin og Linde, s. 400 (figur 17.2) — skala 0–10, laveste nivå i hele måleserien siden 1973",
+  },
+  finansiering: {
+    partier: [
+      { navn: "Ap",   v2021: 63.8, v2025: 66.0 },
+      { navn: "H",    v2021: 39.5, v2025: 55.7 },
+      { navn: "FrP",  v2021: 6.3,  v2025: 47.9 },
+      { navn: "V",    v2021: 10.5, v2025: 24.0 },
+      { navn: "SV",   v2021: 18.5, v2025: 20.6 },
+      { navn: "R",    v2021: 14.3, v2025: 18.2 },
+      { navn: "KrF",  v2021: 6.5,  v2025: 14.0 },
+      { navn: "MDG",  v2021: 17.0, v2025: 13.1 },
+      { navn: "Sp",   v2021: 10.1, v2025: 10.1 },
+    ],
+    notat: "Totalt gikk eksterne partibidrag fra 186,4 til 269,7 mill. kr (+45 %) fra 2021 til 2025. 2025 var første gang høyresiden (144 mill.) mottok mer enn venstresiden (130 mill.) i eksterne bidrag.",
+    kilde: "Kap. 18, «Penger i politikk», Stine Hesstvedt og Rune Karlsen, s. 429 (tabell 18.1), KPI-justerte kroner",
+  },
+};
+
+/* Fristilte diagramtegnere for valganalyser: egen X/Y-utregning, ingen
+   avhengighet til det delte state-objektet (year-glideren og fargeslottene
+   hører til de kommune-baserte fanene og skal verken påvirke eller påvirkes
+   av denne fanen). Samme visuelle språk (klasser) som lineChart()/de andre
+   håndtegnede diagrammene over — bare uten hover-tooltip, som ikke trengs
+   for et fast, historisk datasett. */
+function vaLinjeGraf({ tittel, ar, serier, dec = 0, suffix = "", visEndelabels = true }) {
+  const W = 760, H = 300, ml = 46, mr = visEndelabels ? 132 : 16, mt = 12, mb = 30;
+  const iw = W - ml - mr, ih = H - mt - mb;
+
+  const vals = serier.flatMap(s => s.data.filter(v => v != null));
+  const ticks = niceTicks(Math.min(...vals), Math.max(...vals));
+  const y0 = ticks[0], y1 = ticks[ticks.length - 1];
+
+  const X = i => ml + (ar.length === 1 ? iw / 2 : (ar[i] - ar[0]) / (ar[ar.length - 1] - ar[0]) * iw);
+  const Y = v => mt + ih - (v - y0) / (y1 - y0) * ih;
+
+  let gridl = "";
+  for (const t of ticks) {
+    gridl += `<line class="gridline" x1="${ml}" x2="${ml + iw}" y1="${Y(t)}" y2="${Y(t)}"/>
+      <text x="${ml - 8}" y="${Y(t) + 3.5}" text-anchor="end">${nf(t, dec)}${suffix}</text>`;
+  }
+  const stepX = Math.max(1, Math.ceil(ar.length / 13));
+  let xlabels = "";
+  ar.forEach((y, i) => {
+    if (i % stepX && i !== ar.length - 1) return;
+    xlabels += `<text x="${X(i)}" y="${H - 10}" text-anchor="middle">${y}</text>`;
+  });
+
+  const nullY = (y0 < 0 && y1 > 0)
+    ? `<line class="gridline" x1="${ml}" x2="${ml + iw}" y1="${Y(0)}" y2="${Y(0)}" style="stroke:var(--axis);stroke-dasharray:3 3"/>`
+    : "";
+
+  let lines = "";
+  const endLabels = [];
+  for (const s of serier) {
+    const pts = ar.map((_, i) => ({ i, v: s.data[i] })).filter(p => p.v != null);
+    if (!pts.length) continue;
+    const d = pts.map((p, k) => `${k ? "L" : "M"}${X(p.i).toFixed(1)},${Y(p.v).toFixed(1)}`).join(" ");
+    lines += `<path class="serie" d="${d}" stroke="${s.farge}"/>`;
+    if (visEndelabels) {
+      const last = pts[pts.length - 1];
+      endLabels.push({ x: X(last.i) + 8, y: Y(last.v), navn: s.navn, farge: s.farge });
+    }
+  }
+  const GAP = 13;
+  endLabels.sort((a, b) => a.y - b.y);
+  for (let i = 1; i < endLabels.length; i++) {
+    if (endLabels[i].y - endLabels[i - 1].y < GAP) endLabels[i].y = endLabels[i - 1].y + GAP;
+  }
+  let spill = endLabels.length ? endLabels[endLabels.length - 1].y - (mt + ih) : 0;
+  if (spill > 0) for (const l of endLabels) l.y -= spill;
+  spill = endLabels.length ? mt - endLabels[0].y : 0;
+  if (spill > 0) for (const l of endLabels) l.y += spill;
+  const labels = endLabels.map(l =>
+    `<text class="endlabel" x="${l.x}" y="${l.y + 3.5}" fill="${l.farge}">${l.navn}</text>`).join("");
+
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">
+    <title>${tittel}</title>
+    ${gridl}${nullY}
+    <line class="axisline" x1="${ml}" x2="${ml + iw}" y1="${mt + ih}" y2="${mt + ih}"/>
+    ${xlabels}${lines}${labels}
+  </svg>`;
+}
+
+/**
+ * Grupperte eller stablede stolper over faste kategorier (ikke år på en
+ * kontinuerlig akse — det er vaLinjeGraf sin jobb). `serier` er alltid
+ * flere serier; for ett enkelt tall per kategori (f.eks. gjennomsnittlig
+ * institusjonstillit) sendes én serie med `kategoriFarger` for å gi hver
+ * stolpe sin egen farge i stedet for én ensfarget serie.
+ */
+function vaStolpeGraf({ kategorier, serier, dec = 1, suffix = "", stack = false, kategoriFarger = null, rotate = false }) {
+  const W = 760, H = rotate ? 320 : 300, ml = 50, mr = 16, mt = 12, mb = rotate ? 66 : 30;
+  const iw = W - ml - mr, ih = H - mt - mb;
+  const n = kategorier.length;
+  const slot = iw / n;
+  const groupW = Math.min(slot * 0.72, 64);
+  const barW = stack ? groupW : groupW / serier.length;
+
+  const maxV = stack
+    ? Math.max(...kategorier.map((_, i) => serier.reduce((s, se) => s + (se.data[i] ?? 0), 0)))
+    : Math.max(...serier.flatMap(se => se.data.filter(v => v != null)));
+  const ticks = niceTicks(0, maxV);
+  const yMax = ticks[ticks.length - 1];
+  const Y = v => mt + ih - v / yMax * ih;
+
+  let gridl = "";
+  for (const t of ticks) {
+    gridl += `<line class="gridline" x1="${ml}" x2="${ml + iw}" y1="${Y(t)}" y2="${Y(t)}"/>
+      <text x="${ml - 8}" y="${Y(t) + 3.5}" text-anchor="end">${nf(t, dec)}${suffix}</text>`;
+  }
+
+  let bars = "", xlabels = "";
+  kategorier.forEach((kat, i) => {
+    const cx = ml + (i + 0.5) * slot;
+    if (stack) {
+      let acc = 0;
+      for (const se of serier) {
+        const v = se.data[i] ?? 0;
+        if (!v) continue;
+        const y0r = Y(acc + v), h = Math.max(0, Y(acc) - Y(acc + v) - 1);
+        const farge = kategoriFarger ? kategoriFarger[i] : se.farge;
+        bars += `<rect x="${(cx - groupW / 2).toFixed(1)}" y="${y0r.toFixed(1)}" width="${groupW.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${farge}"><title>${se.navn} — ${kat}: ${nf(v, dec)}${suffix}</title></rect>`;
+        acc += v;
+      }
+    } else {
+      serier.forEach((se, si) => {
+        const v = se.data[i];
+        if (v == null) return;
+        const x = cx - groupW / 2 + si * barW;
+        const y0r = Y(v);
+        const farge = kategoriFarger ? kategoriFarger[i] : se.farge;
+        bars += `<rect x="${x.toFixed(1)}" y="${y0r.toFixed(1)}" width="${Math.max(1, barW - 3).toFixed(1)}" height="${(mt + ih - y0r).toFixed(1)}" rx="1.5" fill="${farge}"><title>${se.navn} — ${kat}: ${nf(v, dec)}${suffix}</title></rect>`;
+      });
+    }
+    const tf = rotate ? ` transform="rotate(-38 ${cx.toFixed(1)} ${H - mb + 12})"` : "";
+    const anchor = rotate ? "end" : "middle";
+    xlabels += `<text x="${cx.toFixed(1)}" y="${H - mb + 12}" text-anchor="${anchor}"${tf}>${kat}</text>`;
+  });
+
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">
+    ${gridl}
+    <line class="axisline" x1="${ml}" x2="${ml + iw}" y1="${mt + ih}" y2="${mt + ih}"/>
+    ${bars}${xlabels}
+  </svg>`;
+}
+
+/** Vannrett 100%-stolpe for én enkelt sammensetning (velgervandring). */
+function vaStolpe100(segmenter) {
+  const W = 760, H = 34;
+  let x = 0, rects = "", labels = "";
+  for (const s of segmenter) {
+    const w = s.verdi / 100 * W;
+    rects += `<rect x="${x.toFixed(1)}" y="0" width="${w.toFixed(1)}" height="26" fill="${s.farge}"><title>${s.navn}: ${nf(s.verdi, 0)} %</title></rect>`;
+    if (s.verdi >= 6) {
+      labels += `<text class="seglabel" x="${(x + w / 2).toFixed(1)}" y="17" text-anchor="middle">${nf(s.verdi, 0)} %</text>`;
+    }
+    x += w;
+  }
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" style="height:${H}px">${rects}${labels}</svg>`;
+}
+
+function kildeLinje(tekst) {
+  return `<div class="source"><span>Kilde: ${kildeHTML(tekst)}</span></div>`;
+}
+
+function renderValganalyser(host) {
+  const VA = VALGANALYSE;
+  const partiLegend = VA.valgresultat.partier.map(p =>
+    `<span class="item"><i class="key" style="--k:${VA_PARTIFARGE[p.kode]}"></i>${p.navn}</span>`).join("");
+  const arLegend = arr => `<div class="legend">${arr.map(s =>
+    `<span class="item"><i class="key" style="--k:${s.farge}"></i>${s.navn}</span>`).join("")}</div>`;
+
+  host.innerHTML = `
+    <p class="desc" style="max-width:76ch;margin:-2px 0 2px">
+      Disse tallene er ikke fra SSB — de er hentet fra <em>Konflikt og mobilisering.
+      En studie av stortingsvalget 2025</em> (Bergh og Haugsgjerd, red., Institutt for
+      samfunnsforskning / Cappelen Damm Akademisk, 2026, åpen tilgang), og gjelder
+      hele Norge, ikke Finnmark spesielt. Kilde og sidetall er oppgitt under hver graf.
+    </p>
+
+    <section class="card">
+      <div class="card-head"><h2>Stortingsvalget 2017–2025</h2><span class="unit">andel av stemmene, %</span></div>
+      <p class="desc">Fremskrittspartiets fremgang på 12,2 prosentpoeng fra 2021 til 2025 er den største noe
+      norsk parti har hatt mellom to stortingsvalg i etterkrigstiden. Senterpartiet gikk motsatt vei, ned 7,9 pp.</p>
+      ${vaStolpeGraf({
+        kategorier: VA.valgresultat.ar.map(String),
+        serier: VA.valgresultat.partier.map(p => ({ navn: p.navn, farge: VA_PARTIFARGE[p.kode], data: p.data })),
+        dec: 1, suffix: " %", stack: true,
+      })}
+      <div class="legend">${partiLegend}</div>
+      ${kildeLinje(VA.valgresultat.kilde)}
+      <details class="tableview"><summary>Vis tallene i tabell (stemmeandel og mandater)</summary>
+        <div class="table-scroll"><table><thead><tr><th>Parti</th>
+          ${VA.valgresultat.ar.map(a => `<th>${a} %</th>`).join("")}
+          ${VA.valgresultat.ar.map(a => `<th>${a} mand.</th>`).join("")}</tr></thead><tbody>
+          ${VA.valgresultat.partier.map((p, i) => `<tr>
+            <td><span class="muni-key"><i class="key" style="--k:${VA_PARTIFARGE[p.kode]}"></i>${p.navn}</span></td>
+            ${p.data.map(v => `<td>${nf(v, 1)}</td>`).join("")}
+            ${VA.valgresultat.mandater[i].data.map(v => `<td>${v}</td>`).join("")}
+          </tr>`).join("")}
+        </tbody></table></div>
+      </details>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Velgervandring 2021 → 2025</h2><span class="unit">blant de som stemte begge ganger</span></div>
+      <p class="desc">${VA.velgervandring.notat}</p>
+      ${vaStolpe100(VA.velgervandring.segmenter)}
+      <div class="legend">${VA.velgervandring.segmenter.map(s =>
+        `<span class="item"><i class="key" style="--k:${s.farge}"></i>${s.navn} (${nf(s.verdi, 0)} %)</span>`).join("")}</div>
+      ${kildeLinje(VA.velgervandring.kilde)}
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Valgdeltakelse og forhåndsstemming 1981–2025</h2><span class="unit">%</span></div>
+      <p class="desc">80,0 % deltakelse i 2025 er det høyeste siden 1980-tallet. Andelen som forhåndsstemmer har
+      økt jevnt og trutt, fra under 1 av 10 i 1981 til nesten 2 av 3 i 2025.</p>
+      ${vaLinjeGraf({
+        tittel: "Valgdeltakelse og forhåndsstemmeandel 1981–2025",
+        ar: VA.deltakelse.ar,
+        serier: [
+          { navn: "Valgdeltakelse", farge: "var(--accent)", data: VA.deltakelse.total },
+          { navn: "Forhåndsstemmer", farge: "var(--s1)", data: VA.deltakelse.forhand },
+        ],
+        dec: 0, suffix: " %",
+      })}
+      ${arLegend([{ navn: "Valgdeltakelse", farge: "var(--accent)" }, { navn: "Forhåndsstemmer", farge: "var(--s1)" }])}
+      ${kildeLinje(VA.deltakelse.kilde)}
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Valgdeltakelse etter grupper, 2021 vs. 2025</h2><span class="unit">%</span></div>
+      <p class="desc">Deltakelsen økte mest blant unge (20–24 år: +9,9 pp) og innvandrere (+5,7 pp) — grupper
+      som fra før hadde lavest deltakelse. Kjønnsgapet i deltakelse (kvinner høyest) krympet noe, fra 3,1 til 2,5 pp.</p>
+      <h3 style="font-size:12.5px;font-weight:600;margin:10px 0 4px">Kjønn og alder</h3>
+      ${vaStolpeGraf({
+        kategorier: VA.deltakelse.grupper.kjonnAlder.map(g => g.navn),
+        serier: [
+          { navn: "2021", farge: "var(--ink-muted)", data: VA.deltakelse.grupper.kjonnAlder.map(g => g.v2021) },
+          { navn: "2025", farge: "var(--accent)", data: VA.deltakelse.grupper.kjonnAlder.map(g => g.v2025) },
+        ],
+        dec: 1, suffix: " %", rotate: true,
+      })}
+      <h3 style="font-size:12.5px;font-weight:600;margin:14px 0 4px">Utdanning og bakgrunn</h3>
+      ${vaStolpeGraf({
+        kategorier: VA.deltakelse.grupper.utdanningBakgrunn.map(g => g.navn),
+        serier: [
+          { navn: "2021", farge: "var(--ink-muted)", data: VA.deltakelse.grupper.utdanningBakgrunn.map(g => g.v2021) },
+          { navn: "2025", farge: "var(--accent)", data: VA.deltakelse.grupper.utdanningBakgrunn.map(g => g.v2025) },
+        ],
+        dec: 1, suffix: " %", rotate: true,
+      })}
+      ${arLegend([{ navn: "2021", farge: "var(--ink-muted)" }, { navn: "2025", farge: "var(--accent)" }])}
+      ${kildeLinje(VA.deltakelse.grupper.kilde)}
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Kjønnsgap i stemmegivning 1969–2025</h2><span class="unit">pp, menn − kvinner</span></div>
+      <p class="desc">Positive verdier betyr at menn stemte mer borgerlig enn kvinner. 16 prosentpoeng i 2025 er
+      det høyeste gapet siden målingen startet i 1969, og blant Generasjon Z er gapet nesten fire ganger så høyt
+      som blant Boomere.</p>
+      ${vaLinjeGraf({
+        tittel: "Kjønnsgap i stemmegivning 1969–2025",
+        ar: VA.kjonnsgap.ar,
+        serier: [{ navn: "Alle velgere", farge: "var(--accent)", data: VA.kjonnsgap.alle }],
+        dec: 0, suffix: " pp",
+      })}
+      ${kildeLinje(VA.kjonnsgap.kilde)}
+      <h3 style="font-size:12.5px;font-weight:600;margin:14px 0 4px">Etter generasjon (2025)</h3>
+      ${vaStolpeGraf({
+        kategorier: VA.kjonnsgap.generasjon.map(g => g.navn),
+        serier: [{ navn: "Kjønnsgap", farge: "var(--accent)", data: VA.kjonnsgap.generasjon.map(g => g.verdi) }],
+        kategoriFarger: VA.kjonnsgap.generasjon.map(g => g.farge),
+        dec: 1, suffix: " pp",
+      })}
+      ${kildeLinje(VA.kjonnsgap.generasjonKilde)}
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Velgernes viktigste sak 2005–2025</h2><span class="unit">% som oppga saken som viktigst</span></div>
+      <p class="desc">Utenriks- og forsvarspolitikk gikk fra 1 % til 15 % — den største enkeltendringen i tabellen —
+      mens miljø og klima falt fra en topp på 30 % i 2021 til 13 % i 2025.</p>
+      ${vaLinjeGraf({
+        tittel: "Velgernes viktigste sak 2005–2025",
+        ar: VA.sakseierskap.ar,
+        serier: VA.sakseierskap.saker,
+        dec: 0, suffix: " %", visEndelabels: false,
+      })}
+      ${arLegend(VA.sakseierskap.saker)}
+      ${kildeLinje(VA.sakseierskap.kilde)}
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Politisk tillit</h2><span class="unit">skala 0–10</span></div>
+      <p class="desc">Tilliten til politikere falt fra 4,8 i 2021 til 4,1 i 2025 — det laveste nivået siden
+      målingen startet i 1973. Nedgangen i institusjonstillit fra 2021 til 2025 var størst for regjeringen og partiene.</p>
+      <h3 style="font-size:12.5px;font-weight:600;margin:10px 0 4px">Gjennomsnittlig tillit til institusjoner, 2005–2025</h3>
+      ${vaStolpeGraf({
+        kategorier: VA.tillit.institusjoner.map(i => i.navn),
+        serier: [{ navn: "Tillit", farge: "var(--s1)", data: VA.tillit.institusjoner.map(i => i.verdi) }],
+        kategoriFarger: VA.tillit.institusjoner.map(i => i.farge),
+        dec: 1,
+      })}
+      ${kildeLinje(VA.tillit.institusjonerKilde)}
+      <h3 style="font-size:12.5px;font-weight:600;margin:14px 0 4px">Tillit til politikere, 2021 vs. 2025</h3>
+      ${vaStolpeGraf({
+        kategorier: VA.tillit.politikere.ar.map(String),
+        serier: [{ navn: "Tillit", farge: "var(--accent)", data: VA.tillit.politikere.verdi }],
+        dec: 1,
+      })}
+      ${kildeLinje(VA.tillit.politikereKilde)}
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Partifinansiering: eksterne bidrag, 2021 vs. 2025</h2><span class="unit">mill. kr, KPI-justert</span></div>
+      <p class="desc">${VA.finansiering.notat}</p>
+      ${vaStolpeGraf({
+        kategorier: VA.finansiering.partier.map(p => p.navn),
+        serier: [
+          { navn: "2021", farge: "var(--ink-muted)", data: VA.finansiering.partier.map(p => p.v2021) },
+          { navn: "2025", farge: "var(--accent)", data: VA.finansiering.partier.map(p => p.v2025) },
+        ],
+        dec: 1,
+      })}
+      ${arLegend([{ navn: "2021", farge: "var(--ink-muted)" }, { navn: "2025", farge: "var(--accent)" }])}
+      ${kildeLinje(VA.finansiering.kilde)}
+    </section>`;
+}
+
+/* ── Sammenstillinger ───────────────────────────────────────────────────── */
+function renderSammen(host) {
+  const xi = state.scatterX, yi = state.scatterY, yr = state.scatterYear;
+  const pts = REGIONS.map(r => ({
+    key: r.key, navn: r.navn,
+    x: raw(r.key, yr, xi), y: raw(r.key, yr, yi), pop: popOf(r.key, yr),
+  })).filter(p => p.x != null && p.y != null);
+
+  const W = 760, H = 400, ml = 62, mr = 20, mt = 14, mb = 46;
+  const iw = W - ml - mr, ih = H - mt - mb;
+
+  const xt = niceTicks(Math.min(...pts.map(p => p.x)), Math.max(...pts.map(p => p.x)), 5);
+  const yt = niceTicks(Math.min(...pts.map(p => p.y)), Math.max(...pts.map(p => p.y)), 5);
+  const X = v => ml + (v - xt[0]) / (xt[xt.length - 1] - xt[0]) * iw;
+  const Y = v => mt + ih - (v - yt[0]) / (yt[yt.length - 1] - yt[0]) * ih;
+  const maxPop = Math.max(...pts.map(p => p.pop || 1));
+  const R = p => 4 + Math.sqrt((p.pop || 1) / maxPop) * 9;
+
+  let g = "";
+  for (const t of yt) g += `<line class="gridline" x1="${ml}" x2="${ml + iw}" y1="${Y(t)}" y2="${Y(t)}"/>
+                            <text x="${ml - 8}" y="${Y(t) + 3.5}" text-anchor="end">${nf(t, IND[yi].dec)}</text>`;
+  for (const t of xt) g += `<line class="gridline" x1="${X(t)}" x2="${X(t)}" y1="${mt}" y2="${mt + ih}"/>
+                            <text x="${X(t)}" y="${mt + ih + 16}" text-anchor="middle">${nf(t, IND[xi].dec)}</text>`;
+
+  /* Etikettplassering: alle 18 navn skal stå, så de som kolliderer skyves
+     nedover, og de som ville gått ut over høyre ramme snus til venstre side. */
+  const lab = pts.map(p => {
+    const w = p.navn.length * 5.7;
+    const right = X(p.x) + R(p) + 5;
+    const flip = right + w > ml + iw;
+    return { p, w, ly: Y(p.y) + 3.5, lx: flip ? X(p.x) - R(p) - 5 : right, anchor: flip ? "end" : "start" };
+  }).sort((a, b) => a.ly - b.ly);
+
+  const box = L => L.anchor === "end" ? [L.lx - L.w, L.lx] : [L.lx, L.lx + L.w];
+  const done = [];
+  for (const L of lab) {
+    let guard = 0;
+    while (guard++ < 30) {
+      const [l0, l1] = box(L);
+      const clash = done.some(q => {
+        const [q0, q1] = box(q);
+        return Math.abs(q.ly - L.ly) < 11 && l0 < q1 && q0 < l1;
+      });
+      if (!clash) break;
+      L.ly += 11;
+    }
+    done.push(L);
+  }
+
+  const marks = pts.map(p =>
+    `<circle class="scatter-pt" cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${R(p).toFixed(1)}"
+       fill="var(--s1)" fill-opacity="0.72"><title>${p.navn} (${yr})
+${IND[xi].navn}: ${nf(p.x, IND[xi].dec)} ${IND[xi].enhet}
+${IND[yi].navn}: ${nf(p.y, IND[yi].dec)} ${IND[yi].enhet}
+Folkemengde: ${nf(p.pop, 0)}</title></circle>`
+  ).join("") + lab.map(L =>
+    `<text class="ptlabel" x="${L.lx.toFixed(1)}" y="${L.ly.toFixed(1)}" text-anchor="${L.anchor}">${L.p.navn}</text>`
+  ).join("");
+
+  const opts = ind => Object.entries(IND)
+    .map(([k, m]) => `<option value="${k}"${k === ind ? " selected" : ""}>${m.navn}</option>`).join("");
+
+  const tbl = `<div class="table-scroll"><table>
+    <thead><tr><th>Kommune</th><th>${IND[xi].navn}</th><th>${IND[yi].navn}</th><th>Folkemengde</th><th>Kilde</th></tr></thead>
+    <tbody>${pts.slice().sort((a, b) => b.x - a.x).map(p =>
+      `<tr><td>${p.navn}</td><td>${nf(p.x, IND[xi].dec)}</td><td>${nf(p.y, IND[yi].dec)}</td>
+       <td>${nf(p.pop, 0)}</td><td><span class="pill">${IND[xi].kilde} · ${IND[yi].kilde}</span></td></tr>`).join("")}
+    </tbody></table></div>`;
+
+  host.innerHTML = `
+    <section class="card">
+      <div class="card-head">
+        <h2>${IND[yi].navn} mot ${IND[xi].navn}</h2>
+        <span class="unit">ett punkt per kommune · ${yr}</span>
+      </div>
+      <p class="desc">Alle kommuner vises alltid her — poenget er å se mønsteret på tvers, ikke
+      utvalget fra kontrollraden. Punktstørrelsen er folkemengde, så små kommuner
+      med ekstreme forholdstall ikke leses som hovedfunn.</p>
+
+      <div class="rail-row" style="gap:18px;margin-bottom:14px">
+        <div class="field"><span class="field-label">Vannrett akse</span>
+          <select data-axis="scatterX" aria-label="Indikator vannrett akse">${opts(xi)}</select></div>
+        <div class="field"><span class="field-label">Loddrett akse</span>
+          <select data-axis="scatterY" aria-label="Indikator loddrett akse">${opts(yi)}</select></div>
+        <div class="field"><span class="field-label">År</span>
+          <select data-axis="scatterYear" aria-label="År">
+            ${years().map(y => `<option value="${y}"${y === yr ? " selected" : ""}>${y}</option>`).join("")}
+          </select></div>
+      </div>
+
+      <svg class="chart" viewBox="0 0 ${W} ${H}" role="img">
+        <title>${IND[yi].navn} mot ${IND[xi].navn} per kommune i ${yr}</title>
+        ${g}${marks}
+        <line class="axisline" x1="${ml}" x2="${ml + iw}" y1="${mt + ih}" y2="${mt + ih}"/>
+        <line class="axisline" x1="${ml}" x2="${ml}" y1="${mt}" y2="${mt + ih}"/>
+        <text x="${ml + iw / 2}" y="${H - 8}" text-anchor="middle" style="fill:var(--ink-2)">${IND[xi].navn} (${IND[xi].enhet})</text>
+        <text x="14" y="${mt + ih / 2}" text-anchor="middle" transform="rotate(-90 14 ${mt + ih / 2})"
+          style="fill:var(--ink-2)">${IND[yi].navn} (${IND[yi].enhet})</text>
+      </svg>
+
+      <div class="source"><span>Kilder: ${kildeHTML(`${IND[xi].kilde} · ${IND[yi].kilde}`)}</span><span>Hentet: ${hentet(xi)} · ${hentet(yi)}</span></div>
+      <details class="tableview"><summary>Vis tallene i tabell</summary>${tbl}</details>
+    </section>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   9. TEGN OG BIND
+   ═════════════════════════════════════════════════════════════════════════ */
+const tabsEl = document.getElementById("tabs");
+const mainEl = document.getElementById("main");
+
+// Fanen fjernes helt hvis den er slått av, ikke bare skjules med en melding.
+// Standardfanen er "befolkning", så det trengs ingen fallback her.
+const TABS_SYNLIG = VIS_KOMMUNEOKONOMI ? TABS : TABS.filter((t) => t.id !== "okonomi");
+
+function stateFromUrl() {
+  const p = new URLSearchParams(window.location.search);
+  const allowedTabs = new Set(TABS_SYNLIG.map(t => t.id));
+  const validRegions = new Set(REGIONS.map(r => r.key));
+  const validAges = new Set(AGE_BANDS.map(b => b.key));
+  const validReferences = new Set(AGE_REFERENCES.map(r => r.key));
+  const readList = (key, allowed) => p.has(key)
+    ? p.get(key).split(",").filter(v => allowed.has(v))
+    : null;
+  const regions = readList("regions", validRegions);
+  const ages = readList("ages", validAges);
+  const references = readList("references", validReferences);
+
+  if (p.has("tab") && allowedTabs.has(p.get("tab"))) state.tab = p.get("tab");
+  if (regions) state.selected = regions;
+  else if (p.has("regions")) state.selected = [];
+  if (p.has("total")) state.showTotal = p.get("total") === "1";
+  if (p.has("from")) state.from = Number(p.get("from"));
+  if (p.has("to")) state.to = Number(p.get("to"));
+  if (p.has("allYears")) state.visAlleAr = p.get("allYears") === "1";
+  if (p.has("norm") && ["abs", "per1000", "index"].includes(p.get("norm"))) state.norm = p.get("norm");
+  if (p.has("befView") && ["tidsserie", "struktur"].includes(p.get("befView"))) state.befView = p.get("befView");
+  if (ages) state.ageBands = ages;
+  else if (p.has("ages")) state.ageBands = [];
+  if (references) state.ageReferences = references.slice(0, 2);
+  else if (p.has("references")) state.ageReferences = [];
+  if (p.has("pyrRegion") && (p.get("pyrRegion") === TOTAL_KEY || validRegions.has(p.get("pyrRegion")))) state.pyrRegion = p.get("pyrRegion");
+  if (p.has("pyrMode") && ["antall", "prosent"].includes(p.get("pyrMode"))) state.pyrMode = p.get("pyrMode");
+  if (p.has("valgtype")) state.valgtype = p.get("valgtype");
+  if (p.has("valgRegion") && (p.get("valgRegion") === TOTAL_KEY || validRegions.has(p.get("valgRegion")))) state.valgRegion = p.get("valgRegion");
+  if (p.has("valgVisning")) state.valgVisning = p.get("valgVisning");
+  if (p.has("hemiValgtype")) state.hemiValgtype = p.get("hemiValgtype");
+  if (p.has("hemiYear") && Number.isFinite(Number(p.get("hemiYear")))) state.hemiYear = Number(p.get("hemiYear"));
+  if (p.has("trendPartier")) state.trendPartier = p.get("trendPartier").split(",").filter(Boolean);
+  if (p.has("trendTyper")) state.trendTyper = p.get("trendTyper").split(",").filter(Boolean);
+  if (p.has("scatterX")) state.scatterX = p.get("scatterX");
+  if (p.has("scatterY")) state.scatterY = p.get("scatterY");
+  if (p.has("scatterYear") && Number.isFinite(Number(p.get("scatterYear")))) state.scatterYear = Number(p.get("scatterYear"));
+  for (const tema of Object.keys(state.ind)) {
+    const key = `ind_${tema}`;
+    if (p.has(key) && IND[p.get(key)]) state.ind[tema] = p.get(key);
+  }
+}
+
+function shareUrl() {
+  const p = new URLSearchParams();
+  const put = (key, value) => {
+    if (value !== undefined && value !== null && value !== "") p.set(key, String(value));
+  };
+  put("tab", state.tab);
+  put("regions", state.selected.join(","));
+  if (state.showTotal) put("total", "1");
+  put("from", state.from);
+  put("to", state.to);
+  if (state.visAlleAr) put("allYears", "1");
+  put("norm", state.norm);
+  put("befView", state.befView);
+  put("ages", state.ageBands.join(","));
+  put("references", state.ageReferences.join(","));
+  put("pyrRegion", state.pyrRegion);
+  put("pyrMode", state.pyrMode);
+  for (const tema of Object.keys(state.ind)) put(`ind_${tema}`, state.ind[tema]);
+  put("valgtype", state.valgtype);
+  put("valgRegion", state.valgRegion);
+  put("valgVisning", state.valgVisning);
+  put("hemiValgtype", state.hemiValgtype);
+  put("hemiYear", state.hemiYear);
+  put("trendPartier", state.trendPartier.join(","));
+  put("trendTyper", state.trendTyper.join(","));
+  put("scatterX", state.scatterX);
+  put("scatterY", state.scatterY);
+  put("scatterYear", state.scatterYear);
+  const url = new URL(window.location.href);
+  url.search = p.toString();
+  url.hash = "";
+  return url.toString();
+}
+
+function syncShareUrl() {
+  window.history.replaceState(null, "", shareUrl());
+}
+
+async function copyShareUrl() {
+  const status = document.getElementById("shareStatus");
+  const link = shareUrl();
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(link);
+    } else {
+      const input = document.createElement("textarea");
+      input.value = link;
+      input.setAttribute("readonly", "");
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      input.remove();
+    }
+    status.textContent = "Lenken er kopiert.";
+  } catch {
+    status.textContent = "Kopieringen ble blokkert. Kopier lenken fra adressefeltet.";
+  }
+  window.setTimeout(() => { status.textContent = ""; }, 4000);
+}
+
+tabsEl.innerHTML = TABS_SYNLIG.map(t =>
+  `<button role="tab" type="button" data-tab="${t.id}" aria-selected="${t.id === state.tab}">${t.navn}</button>`
+).join("");
+mainEl.innerHTML = TABS_SYNLIG.map(t => `<div class="panel" data-panel="${t.id}" role="tabpanel"></div>`).join("");
+
+function renderChips() {
+  const host = document.getElementById("regionChips");
+  const atCap = state.selected.length >= MAX_SERIES;
+  host.innerHTML =
+    `<button class="chip is-total" type="button" data-total aria-pressed="${state.showTotal}">
+       <i class="swatch"></i>Finnmark samlet</button>` +
+    REGIONS.map(r => {
+      const on = state.selected.includes(r.key);
+      return `<button class="chip" type="button" data-region="${r.key}" aria-pressed="${on}"
+        ${!on && atCap ? "disabled" : ""} style="--sw:${on ? colorOf(r.key) : "transparent"}"
+        title="${r.navn} · ${r.sami} · SSB ${r.ssb2024}">
+        <i class="swatch"></i>${r.navn}</button>`;
+    }).join("");
+
+  document.getElementById("capNote").textContent = atCap
+    ? `Grensen på ${MAX_SERIES} kommuner er nådd. Fjern én for å legge til en annen — flere enn åtte linjer kan ikke skilles pålitelig med farge alene.`
+    : `${state.selected.length} av maks ${MAX_SERIES} kommuner valgt. Sammenstillingsfanen viser alltid alle 18.`;
+}
+
+function renderNormNote() {
+  const tema = state.tab;
+  const note = document.getElementById("normNote");
+  const seg = document.getElementById("normSeg");
+  const ind = state.ind[tema];
+  const applicable = tema in state.ind ? per1000Allowed(ind) : true;
+
+  seg.querySelectorAll("button").forEach(b => {
+    b.setAttribute("aria-pressed", String(b.dataset.norm === state.norm));
+    if (b.dataset.norm === "per1000") b.disabled = (tema in state.ind) && !applicable;
+  });
+
+  if (!(tema in state.ind)) { note.textContent = "Måleform gjelder de tre tidsseriefanene."; return; }
+  if (state.norm === "per1000" && !applicable) {
+    note.textContent = `${IND[ind].navn} er allerede et forholdstall — vises absolutt.`;
+  } else if (state.norm === "index") {
+    note.textContent = `${state.from} = 100 for hver region.`;
+  } else {
+    note.textContent = "";
+  }
+}
+
+function render() {
+  assignSlots();
+  assignAgeSlots();
+  renderChips();
+
+  tabsEl.querySelectorAll("button").forEach(b =>
+    b.setAttribute("aria-selected", String(b.dataset.tab === state.tab)));
+  mainEl.querySelectorAll(".panel").forEach(p => {
+    if (p.dataset.panel === state.tab) p.setAttribute("data-active", ""); else p.removeAttribute("data-active");
+  });
+
+  renderNormNote();
+
+  const host = mainEl.querySelector(`[data-panel="${state.tab}"]`);
+  if (state.tab === "valg") renderValg(host);
+  else if (state.tab === "valganalyser") renderValganalyser(host);
+  else if (state.tab === "sammen") renderSammen(host);
+  else if (state.tab === "befolkning" && state.befView === "struktur") renderPyramid(host);
+  else renderThemePanel(state.tab, host);
+  syncShareUrl();
+}
+
+/* Hendelser — én delegert lytter for hele siden. */
+document.addEventListener("click", ev => {
+  const t = ev.target.closest("button");
+  if (!t) return;
+
+  if (t.id === "copyShareLink") { copyShareUrl(); }
+  else if (t.dataset.tab) { state.tab = t.dataset.tab; render(); }
+  else if (t.dataset.region) {
+    const k = t.dataset.region;
+    state.selected = state.selected.includes(k)
+      ? state.selected.filter(x => x !== k)
+      : (state.selected.length < MAX_SERIES ? [...state.selected, k] : state.selected);
+    render();
+  }
+  else if (t.hasAttribute("data-total")) { state.showTotal = !state.showTotal; render(); }
+  else if (t.dataset.norm) { state.norm = t.dataset.norm; render(); }
+  else if (t.dataset.setnorm) { state.norm = t.dataset.setnorm; render(); }
+  else if (t.dataset.valgtype) { state.valgtype = t.dataset.valgtype; render(); }
+  else if (t.dataset.valgvisning) { state.valgVisning = t.dataset.valgvisning; render(); }
+  else if (t.dataset.hemivalgtype) {
+    state.hemiValgtype = t.dataset.hemivalgtype;
+    const ar = VALG[state.hemiValgtype].ar;
+    if (!ar.includes(state.hemiYear)) state.hemiYear = ar[ar.length - 1];
+    render();
+  }
+  else if (t.dataset.trendparti) {
+    const k = t.dataset.trendparti;
+    state.trendPartier = state.trendPartier.includes(k)
+      ? state.trendPartier.filter(x => x !== k)
+      : [...state.trendPartier, k];
+    render();
+  }
+  else if (t.dataset.trendtype) {
+    const k = t.dataset.trendtype;
+    state.trendTyper = state.trendTyper.includes(k)
+      ? state.trendTyper.filter(x => x !== k)
+      : [...state.trendTyper, k];
+    render();
+  }
+  else if (t.dataset.befview) { state.befView = t.dataset.befview; render(); }
+  else if (t.dataset.pyrmode) { state.pyrMode = t.dataset.pyrmode; render(); }
+  else if (t.dataset.ageband) {
+    const k = t.dataset.ageband;
+    if (state.ageBands.includes(k)) state.ageBands = state.ageBands.filter(x => x !== k);
+    else if (state.ageBands.length < MAX_SERIES) state.ageBands = [...state.ageBands, k];
+    render();
+  }
+  else if (t.dataset.ageref) {
+    const key = t.dataset.ageref;
+    if (state.ageReferences.includes(key)) state.ageReferences = state.ageReferences.filter(x => x !== key);
+    else if (state.ageReferences.length < 2) state.ageReferences = [...state.ageReferences, key];
+    render();
+  }
+  else if (t.dataset.agepick) {
+    const pick = AGE_PICKS[t.dataset.agepick];
+    state.ageBands = pick
+      ? AGE_BANDS.filter(b => b.lo >= pick.lo && b.lo <= pick.hi).map(b => b.key).slice(0, MAX_SERIES)
+      : [];
+    render();
+  }
+  else if (t.id === "clearAll") { state.selected = []; render(); }
+  else if (t.id === "pickAll") {
+    // Bevisst valg: viser alle 18, selv om det er flere enn de 8 fargeslotsene
+    // kan skille pålitelig — cap-notatet forklarer hvorfor noen deler farge.
+    state.selected = REGIONS.map(r => r.key);
+    render();
+  }
+});
+
+document.addEventListener("change", ev => {
+  const s = ev.target;
+  if (s.dataset.indpicker) { state.ind[s.dataset.indpicker] = s.value; render(); }
+  else if (s.dataset.valgregion !== undefined) { state.valgRegion = s.value; render(); }
+  else if (s.dataset.hemiyear !== undefined) { state.hemiYear = +s.value; render(); }
+  else if (s.dataset.pyrregion !== undefined) { state.pyrRegion = s.value; render(); }
+  else if (s.dataset.axis) {
+    state[s.dataset.axis] = s.dataset.axis === "scatterYear" ? +s.value : s.value;
+    render();
+  }
+});
+
+const yFrom = document.getElementById("yearFrom");
+const yTo = document.getElementById("yearTo");
+const yFromNum = document.getElementById("yrFrom");
+const yToNum = document.getElementById("yrTo");
+const visAlleArBox = document.getElementById("visAlleAr");
+
+/* Med ekte data begrenses velgeren til årene uttrekket faktisk dekker. Å la
+   brukeren dra til 2000 når SSB-uttrekket starter i 2015 ville produsert en
+   tom venstrehalvdel som ser ut som befolkningskollaps. */
+const [SPENN_MIN, SPENN_MAX] = EKTE_ÅR.length
+  ? [EKTE_ÅR[0], EKTE_ÅR[EKTE_ÅR.length - 1]]
+  : [YEAR_MIN, YEAR_MAX];
+state.from = Math.min(Math.max(state.from, SPENN_MIN), SPENN_MAX - 1);
+state.to   = Math.min(Math.max(state.to, state.from + 1), SPENN_MAX);
+if (state.scatterYear < state.from || state.scatterYear > state.to) state.scatterYear = state.to;
+
+stateFromUrl();
+state.from = Math.min(Math.max(Number.isFinite(state.from) ? state.from : SPENN_MIN, SPENN_MIN), SPENN_MAX - 1);
+state.to = Math.min(Math.max(Number.isFinite(state.to) ? state.to : SPENN_MAX, state.from + 1), SPENN_MAX);
+if (state.scatterYear < state.from || state.scatterYear > state.to) state.scatterYear = state.to;
+
+yFrom.min = yTo.min = yFromNum.min = yToNum.min = SPENN_MIN;
+yFrom.max = yTo.max = yFromNum.max = yToNum.max = SPENN_MAX;
+
+function settYearKontroller(a, b) {
+  yFrom.value = a; yTo.value = b; yFromNum.value = a; yToNum.value = b;
+}
+settYearKontroller(state.from, state.to);
+
+/* Både glidere og skriv-inn-feltene kaller denne — «which» sier hvilken
+   ende som nettopp ble endret, resten avledes fra state slik den var. */
+function applyYear(which, raw) {
+  let v = Math.round(raw);
+  if (Number.isNaN(v)) v = which === "from" ? state.from : state.to;
+  v = Math.min(Math.max(v, SPENN_MIN), SPENN_MAX);
+  let a = which === "from" ? v : state.from;
+  let b = which === "to" ? v : state.to;
+  if (a > b - 1) { if (which === "from") a = b - 1; else b = a + 1; }
+  a = Math.max(a, SPENN_MIN); b = Math.min(b, SPENN_MAX);
+  state.from = a; state.to = b;
+  if (state.scatterYear < a || state.scatterYear > b) state.scatterYear = b;
+  settYearKontroller(a, b);
+  render();
+}
+yFrom.addEventListener("input", () => applyYear("from", +yFrom.value));
+yTo.addEventListener("input", () => applyYear("to", +yTo.value));
+yFromNum.addEventListener("change", () => applyYear("from", +yFromNum.value));
+yToNum.addEventListener("change", () => applyYear("to", +yToNum.value));
+
+visAlleArBox.checked = state.visAlleAr;
+visAlleArBox.addEventListener("change", () => { state.visAlleAr = visAlleArBox.checked; render(); });
+
+;
+
+render();
+}
+
+start();
+</script>
