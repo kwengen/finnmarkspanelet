@@ -3,6 +3,8 @@
 Offentlig statistikkside om Finnmark, bygget på SSBs åpne API. Ingen kundedata,
 ingen regnskapsintegrasjon, ingen brukerinnlogging.
 
+**https://finnmarkspanelet.vercel.app**
+
 Panelet lå tidligere inne i TinkrFlows. Det er flyttet hit fordi det var eneste
 grunn til at TinkrFlows — som har skrivetilgang til regnskapet — måtte ha
 offentlige unntak i tilgangskontrollen sin. Bakgrunnen står i
@@ -49,7 +51,7 @@ tidsplan ville bare vært et kall uten formål.
 
 ```bash
 curl -H "Authorization: Bearer $FINNMARK_ADMIN_KEY" \
-  https://<domene>/api/ssb/refresh
+  https://finnmarkspanelet.vercel.app/api/ssb/refresh
 ```
 
 Uten `?tema=` vurderes alle temaer. Bare kilder som mangler, sist feilet, eller
