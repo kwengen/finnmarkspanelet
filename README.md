@@ -30,25 +30,25 @@ valideringen, beholdes forrige gyldige uttrekk og serveres videre merket
 
 ## Miljøvariabler
 
-Alle tre settes i Vercel, kun i **Production**.
+Alle tre settes i Vercel, kun i **Production**. Det er tre, ikke fire: en egen
+hemmelighet for henting ville gjort samme jobb som adminnøkkelen.
 
 | Variabel | Hva den er |
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://<ref>.supabase.co` for dette prosjektets egen database |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service-role-nøkkelen til **samme** prosjekt |
-| `CRON_SECRET` | Sperre foran `/api/ssb/refresh` |
-| `FINNMARK_ADMIN_KEY` | Nøkkelen `/admin` spør etter |
+| `FINNMARK_ADMIN_KEY` | Nøkkelen `/admin` spør etter, og som gater `/api/ssb/refresh` |
 
 Ingen av dem skal ha samme verdi som noe i TinkrFlows. Hele poenget med
 utskillingen er at de to installasjonene ikke deler legitimasjon.
 
-Navnet `CRON_SECRET` er arvet. Det finnes ingen cron her — statistikken endrer
-seg typisk årlig, og en tidsplan ville bare vært et kall uten formål.
+Det finnes ingen cron her — statistikken endrer seg typisk årlig, og en
+tidsplan ville bare vært et kall uten formål.
 
 ## Oppdatere data
 
 ```bash
-curl -H "Authorization: Bearer $CRON_SECRET" \
+curl -H "Authorization: Bearer $FINNMARK_ADMIN_KEY" \
   https://<domene>/api/ssb/refresh
 ```
 

@@ -1,5 +1,5 @@
-import { timingSafeEqual } from 'node:crypto'
 import { NextResponse, type NextRequest } from 'next/server'
+import { avvisUautorisertAdmin } from '@/lib/admin-auth'
 import { erTema, lesDatasett, oppdaterUsynkroniserte, TEMAER } from '@/lib/ssb'
 
 /**
@@ -15,34 +15,22 @@ import { erTema, lesDatasett, oppdaterUsynkroniserte, TEMAER } from '@/lib/ssb'
  * IKKE hele temaet på nytt hver gang. Uten ?tema vurderes alle kjente
  * temaer. Med ?tema=befolkning vurderes bare det ene.
  *
- *   curl -H "Authorization: Bearer $CRON_SECRET" \
+ *   curl -H "Authorization: Bearer $FINNMARK_ADMIN_KEY" \
  *     https://<domene>/api/ssb/refresh?tema=befolkning
  *
- * Navnet CRON_SECRET er arvet fra TinkrFlows, der hemmeligheten var delt med
- * /api/sync/cron. Her finnes ingen cron — dette er bare en enkel sperre mot
- * at hvem som helst kan utløse et SSB/KLASS-kall. Verdien er ny og egen; den
- * skal ikke være den samme som TinkrFlows sin.
+ * Samme nøkkel som /admin, fordi det er samme handling. Ruten finnes i
+ * tillegg til panelet bare for å kunne skriptes og for første gangs kjøring.
+ *
+ * Sperren beskytter ingen hemmelighet — alt her er offentlig SSB-statistikk.
+ * Den beskytter SSBs kallgrense (30 spørringer/minutt per IP) og vår egen
+ * funksjonstid mot at hvem som helst kan trykke på knappen i en løkke.
  */
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
-function harGyldigAutorisasjon(request: NextRequest, secret: string): boolean {
-  const authorization = request.headers.get('authorization')
-  if (!authorization?.startsWith('Bearer ')) return false
-  const oppgitt = Buffer.from(authorization.slice('Bearer '.length))
-  const forventet = Buffer.from(secret)
-  return oppgitt.length === forventet.length && timingSafeEqual(oppgitt, forventet)
-}
-
 export async function GET(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET?.trim()
-  if (!cronSecret) {
-    console.error('SSB-oppdatering avvist: CRON_SECRET mangler')
-    return NextResponse.json({ feil: 'CRON_SECRET er ikke konfigurert' }, { status: 503 })
-  }
-  if (!harGyldigAutorisasjon(request, cronSecret)) {
-    return NextResponse.json({ feil: 'Ikke autorisert' }, { status: 401 })
-  }
+  const avvist = avvisUautorisertAdmin(request)
+  if (avvist) return avvist
 
   const parametertema = request.nextUrl.searchParams.get('tema')
   if (parametertema !== null && !erTema(parametertema)) {

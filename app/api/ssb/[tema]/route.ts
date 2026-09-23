@@ -42,7 +42,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json(
       {
         feil: `Ingen data hentet for temaet «${tema}» ennå.`,
-        tiltak: 'Kjør GET /api/ssb/refresh (med CRON_SECRET som Bearer-token) for å hente det første gang.',
+        tiltak: 'Kjør GET /api/ssb/refresh (med FINNMARK_ADMIN_KEY som Bearer-token) for å hente det første gang.',
       },
       { status: 404, headers: { 'Cache-Control': 'no-store' } }
     )
