@@ -28,10 +28,17 @@ export async function GET(request: NextRequest) {
         kilde: def.kilde,
         hentet: rad?.hentet ?? null,
         status: !rad?.hentet ? ('aldri_hentet' as const) : rad.sisteFeil ? ('feilet' as const) : ('ok' as const),
+        // Må dekke ALLE dataarrayene i KildePayload. Utelates én, rapporterer
+        // en kilde som bare fyller den «0 rader» selv når hentingen gikk bra —
+        // og statusmerket sier likevel «Hentet», siden det bare ser etter en
+        // feil. En kilde som henter mye ser da helt lik ut som en som henter
+        // ingenting.
         antallRader:
           (rad?.payload?.fakta?.length ?? 0) +
           (rad?.payload?.befolkning?.length ?? 0) +
-          (rad?.payload?.resultater?.length ?? 0),
+          (rad?.payload?.sammenligninger?.length ?? 0) +
+          (rad?.payload?.resultater?.length ?? 0) +
+          (rad?.payload?.mandater?.length ?? 0),
         feil: rad?.sisteFeil ?? null,
         feilSiden: rad?.feilSiden ?? null,
         antallFeil: rad?.antallFeil ?? 0,
