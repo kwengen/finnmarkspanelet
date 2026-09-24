@@ -1505,11 +1505,6 @@ function renderThemePanel(tema, host) {
 }
 
 /* ── Befolkningspyramide: alder × kjønn, med endring over perioden ───────── */
-function popRange(region, ar, lo, hi) {
-  return AGE_BANDS.filter(b => b.lo >= lo && b.lo <= hi)
-    .reduce((s, b) => s + popBand(region, ar, b.key), 0);
-}
-
 function renderPyramid(host) {
   const reg = state.pyrRegion;
   const regNavn = reg === TOTAL_KEY ? "Finnmark samlet" : REGION_BY_KEY[reg].navn;
@@ -1583,30 +1578,66 @@ function renderPyramid(host) {
       stroke-width="1.5" stroke-dasharray="3 2.5" stroke-linejoin="round"/>`;
   }
 
-  /* Nøkkeltall — hovedgruppene, ikke femårsbåndene. */
+  /* Nøkkeltall — hovedgruppene, ikke femårsbåndene.
+
+     Disse skal IKKE regnes om fra femårsbåndene. Båndene er femårige, så 67 er
+     ingen båndgrense, og enhver tilnærming må enten hoppe over noen eller ta
+     dem med to ganger. Den gamle varianten gjorde det siste: «20–66» og
+     «67 +» tok begge med båndet 65–69, gruppene summerte til over
+     folkemengden, og forsørgerbrøken hadde de samme menneskene i både teller
+     og nevner.
+
+     Serveren har allerede regnet begge riktig, fra ettårig alder — se
+     lib/ssb/befolkning.ts, `alder <= 19` og `alder >= 67` — og lagret dem som
+     andelene andel0_19 og andel67. Her brukes de, og 20–66 er resten. Da
+     summerer gruppene til folkemengden per konstruksjon, og siden svarer det
+     samme på «67 år og over» uansett hvilken fane man står på. */
+  const gruppetall = (ar, tot) => {
+    const andelUnge = raw(reg, ar, "andel0_19");
+    const andelEldre = raw(reg, ar, "andel67");
+    if (andelUnge == null || andelEldre == null) return null;
+    /* Rundes her, ikke ved utskrift. Tre tall som rundes hver for seg kan
+       summere til én av eller på folkemengden; her tar restgruppen opp i seg
+       avrundingen, så de tre heltallene summerer eksakt. */
+    const unge = Math.round(andelUnge / 100 * tot);
+    const eldre = Math.round(andelEldre / 100 * tot);
+    return { unge, eldre, yrkesaktive: tot - unge - eldre };
+  };
+  const gNow = gruppetall(yNow, totNow);
+  const gBase = gruppetall(yBase, totBase);
+
   const groups = [
-    { navn: "0–19 år",  lo: 0,  hi: 15 },
-    { navn: "20–66 år", lo: 20, hi: 65 },
-    { navn: "67 år +",  lo: 65, hi: 90 },
+    { navn: "0–19 år",  felt: "unge" },
+    { navn: "20–66 år", felt: "yrkesaktive" },
+    { navn: "67 år +",  felt: "eldre" },
   ];
   const tiles = groups.map(g => {
-    const a = popRange(reg, yBase, g.lo, g.hi), b2 = popRange(reg, yNow, g.lo, g.hi);
-    const sa = a / totBase * 100, sb = b2 / totNow * 100;
-    const dpp = sb - sa;
+    const b2 = gNow?.[g.felt], a = gBase?.[g.felt];
+    if (b2 == null) {
+      return `<div class="tile">
+      <span class="t-name"><span>${g.navn}</span></span>
+      <span><span class="t-val">–</span></span>
+    </div>`;
+    }
+    const sb = b2 / totNow * 100;
+    const dpp = a == null ? null : sb - a / totBase * 100;
     return `<div class="tile">
       <span class="t-name"><span>${g.navn}</span></span>
       <span><span class="t-val">${nf(b2, 0)}</span>
       <span class="t-delta">${nf(sb, 1)} %</span>
-      <span class="t-delta ${dpp >= 0 ? "up" : "down"}">${dpp >= 0 ? "▲" : "▼"} ${nf(Math.abs(dpp), 1)} pp</span></span>
+      ${dpp == null ? "" : `<span class="t-delta ${dpp >= 0 ? "up" : "down"}">${
+        dpp >= 0 ? "▲" : "▼"} ${nf(Math.abs(dpp), 1)} pp</span>`}</span>
     </div>`;
   }).join("");
 
   const kvNow = AGE_BANDS.reduce((s, b) => s + pop(reg, yNow, "k", b.key), 0);
   const kvBase = AGE_BANDS.reduce((s, b) => s + pop(reg, yBase, "k", b.key), 0);
-  const yrkes = popRange(reg, yNow, 20, 65) || 1;
-  const yrkesB = popRange(reg, yBase, 20, 65) || 1;
-  const fbNow = (popRange(reg, yNow, 0, 15) + popRange(reg, yNow, 65, 90)) / yrkes * 100;
-  const fbBase = (popRange(reg, yBase, 0, 15) + popRange(reg, yBase, 65, 90)) / yrkesB * 100;
+  /* Forsørgerbrøk: barn og eldre per 100 i yrkesaktiv alder. Bygger på de
+     samme tre gruppene, så den kan ikke komme i utakt med boksene over. */
+  const forsorgerbrok = (g) =>
+    g && g.yrkesaktive > 0 ? (g.unge + g.eldre) / g.yrkesaktive * 100 : null;
+  const fbNow = forsorgerbrok(gNow);
+  const fbBase = forsorgerbrok(gBase);
 
   const extra = `
     <div class="tile"><span class="t-name"><span>Folkemengde</span></span>
@@ -1617,8 +1648,8 @@ function renderPyramid(host) {
       <span><span class="t-val">${nf(kvNow / totNow * 100, 1)} %</span>
       <span class="t-delta">${nf(kvBase / totBase * 100, 1)} % i ${yBase}</span></span></div>
     <div class="tile"><span class="t-name"><span>Forsørgerbrøk</span></span>
-      <span><span class="t-val">${nf(fbNow, 1)}</span>
-      <span class="t-delta">${nf(fbBase, 1)} i ${yBase}</span></span></div>`;
+      <span><span class="t-val">${fbNow == null ? "–" : nf(fbNow, 1)}</span>
+      ${fbBase == null ? "" : `<span class="t-delta">${nf(fbBase, 1)} i ${yBase}</span>`}</span></div>`;
 
   const rows = AGE_BANDS.slice().reverse().map(b => {
     const m = pop(reg, yNow, "m", b.key), k = pop(reg, yNow, "k", b.key), t = m + k;
