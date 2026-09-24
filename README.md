@@ -58,6 +58,17 @@ Uten `?tema=` vurderes alle temaer. Bare kilder som mangler, sist feilet, eller
 er flagget for tvungen oppdatering i `/admin`, hentes — ikke hele temaet på
 nytt hver gang.
 
+**Første gang databasen er tom rekker ikke ett kall gjennom.** Ruten har
+`maxDuration = 300`, og `px.ts` holder 2,1 sekunders pause mellom hvert
+SSB-kall for å holde seg under kallgrensen på 30 spørringer per minutt. En full
+førstegangshenting bruker mer enn fem minutter og blir kuttet et sted uti
+rekkefølgen befolkning → næring → økonomi.
+
+Det er ikke en feil, og det retter seg selv: kjør kallet på nytt, så fortsetter
+det der det stoppet. Vil du unngå avbruddet, ta ett tema om gangen med
+`?tema=okonomi` og så videre. I daglig drift er det aldri et problem — da
+mangler det bare noen få kilder om gangen.
+
 ## Adminpanelet
 
 `/admin` viser status per underliggende kilde og lar deg utløse en henting
