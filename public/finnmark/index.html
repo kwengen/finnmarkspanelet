@@ -434,6 +434,52 @@ details.tableview[open] > summary::before { content: "▾"; }
 .strategy-filter-actions { display: flex; align-items: center; gap: 10px; min-height: 32px; }
 .strategy-count { margin: 0 0 12px; font-size: 12px; color: var(--ink-muted); }
 .strategy-list { display: grid; gap: 8px; }
+.strategy-results-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.strategy-results-head .strategy-count { margin: 0; }
+.strategy-view-toggle { display: flex; gap: 6px; }
+.strategy-view-toggle .chip[aria-pressed="true"] {
+  background: var(--accent); color: var(--surface); border-color: var(--accent);
+}
+.strategy-board {
+  display: flex; align-items: start; gap: 12px; overflow-x: auto;
+  padding: 2px 2px 8px; margin: 0 -2px;
+}
+.strategy-column {
+  flex: 0 0 280px; min-width: 280px; border: 1px solid var(--rule);
+  border-radius: var(--r); background: var(--surface-2); overflow: hidden;
+}
+.strategy-column-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  padding: 10px 11px; border-bottom: 1px solid var(--rule);
+}
+.strategy-column-head h3 { margin: 0; font-size: 13px; line-height: 1.3; }
+.strategy-column-count { font-family: var(--mono); font-size: 10.5px; color: var(--ink-muted); white-space: nowrap; }
+.strategy-column-list { display: grid; gap: 8px; padding: 8px; align-content: start; min-height: 92px; }
+.strategy-column-empty { margin: 7px 4px; color: var(--ink-muted); font-size: 12px; }
+.strategy-kanban-card {
+  border: 1px solid var(--rule); border-radius: calc(var(--r) - 2px);
+  background: var(--surface); overflow: hidden;
+}
+.strategy-kanban-card[open] { border-color: var(--rule-strong); }
+.strategy-kanban-card > summary { cursor: pointer; list-style: none; padding: 10px; }
+.strategy-kanban-card > summary::-webkit-details-marker { display: none; }
+.strategy-kanban-card > summary::after {
+  content: "+"; float: right; color: var(--accent-text); font-family: var(--mono); font-size: 13px;
+}
+.strategy-kanban-card[open] > summary::after { content: "−"; }
+.strategy-card-author { display: block; padding-right: 16px; font-size: 12px; font-weight: 700; }
+.strategy-card-date { display: block; margin-top: 3px; font-family: var(--mono); font-size: 10px; color: var(--ink-muted); }
+.strategy-card-preview {
+  display: -webkit-box; overflow: hidden; margin: 8px 0 0;
+  -webkit-box-orient: vertical; -webkit-line-clamp: 4;
+  color: var(--ink-2); font-size: 12.5px; line-height: 1.45;
+}
+.strategy-kanban-card[open] .strategy-card-preview { -webkit-line-clamp: unset; }
+.strategy-card-body { padding: 0 10px 10px; }
+.strategy-card-meta {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 9px;
+  font-family: var(--mono); font-size: 10px; color: var(--ink-muted);
+}
 .strategy-response {
   border: 1px solid var(--rule); border-radius: var(--r);
   background: var(--surface); overflow: hidden;
@@ -471,6 +517,7 @@ details.tableview[open] > summary::before { content: "▾"; }
   .strategy-filter-actions { grid-column: auto; }
   .strategy-response > summary { grid-template-columns: 1fr; gap: 3px; }
   .strategy-response time { padding-left: 18px; }
+  .strategy-column { flex-basis: min(280px, calc(100vw - 48px)); min-width: min(280px, calc(100vw - 48px)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1046,6 +1093,7 @@ const state = {
   strategySource: "all",
   strategyAuthor: "all",
   strategySort: "newest",
+  strategyView: "kanban",
 };
 
 /* Farge følger kommunen, ikke rekkefølgen i utvalget: slotten låses ved
@@ -2585,6 +2633,20 @@ function renderStrategi(host) {
     `<option value="all">Alle avsendere</option>`,
     ...authors.map(author => `<option value="${escapeHTML(author)}"${state.strategyAuthor === author ? " selected" : ""}>${escapeHTML(author)}</option>`),
   ].join("");
+  const visibleSources = sources.filter(source => sourceFilter === "all" || source.id === sourceFilter);
+  const strategyCard = response => {
+    const sourceTitle = sourceById.get(response.source)?.title || response.source;
+    return `<details class="strategy-kanban-card">
+      <summary>
+        <span class="strategy-card-author">${escapeHTML(response.author)}</span>
+        <time class="strategy-card-date" datetime="${escapeHTML(response.submittedAt)}">${escapeHTML(dateFormatter.format(new Date(response.submittedAt)))}</time>
+        <span class="strategy-card-preview">${strategyTextHTML(response.text)}</span>
+      </summary>
+      <div class="strategy-card-body">
+        <div class="strategy-card-meta"><span>${escapeHTML(sourceTitle)}</span><span>Padlet-side ${response.page}</span></div>
+      </div>
+    </details>`;
+  };
   const resultItems = filtered.map(response => {
     const sourceTitle = sourceById.get(response.source)?.title || response.source;
     return `<details class="strategy-response">
@@ -2599,11 +2661,26 @@ function renderStrategi(host) {
       </div>
     </details>`;
   }).join("");
+  const boardItems = visibleSources.map(source => {
+    const sourceResponses = filtered.filter(response => response.source === source.id);
+    return `<section class="strategy-column" aria-labelledby="strategy-column-${escapeHTML(source.id)}">
+      <header class="strategy-column-head">
+        <h3 id="strategy-column-${escapeHTML(source.id)}">${escapeHTML(source.title)}</h3>
+        <span class="strategy-column-count">${sourceResponses.length} svar</span>
+      </header>
+      <div class="strategy-column-list">
+        ${sourceResponses.map(strategyCard).join("") || '<p class="strategy-column-empty">Ingen svar passer til filteret.</p>'}
+      </div>
+    </section>`;
+  }).join("");
+  const resultsView = state.strategyView === "list"
+    ? `<div class="strategy-list">${resultItems || '<div class="empty">Ingen svar passer til søket og filtrene.</div>'}</div>`
+    : `<div class="strategy-board" aria-label="Kanbanbord med svar fra Strategikonferansen">${boardItems}</div>`;
 
   host.innerHTML = `<div class="strategy-panel">
     <section class="card strategy-intro">
       <div class="card-head"><h2>Strategikonferanse 2026</h2><span class="unit">${responses.length} svar · ${sources.length} arbeidsøkter</span></div>
-      <p class="desc">Her er svarene fra gruppearbeidet samlet på ett sted. Søk i hele materialet, filtrer på arbeidsøkt eller avsender, og åpne et innlegg for å lese hele svaret.</p>
+      <p class="desc">Her er svarene fra gruppearbeidet samlet som kort i et kanbanbord. Søk i hele materialet, filtrer på arbeidsøkt eller avsender, og åpne et kort for å lese hele svaret.</p>
       <div class="strategy-source-links" role="group" aria-label="Filtrer på arbeidsøkt">${sourceButtons}</div>
       <details class="strategy-questions">
         <summary>Se spørsmålene fra arbeidsøktene</summary>
@@ -2626,8 +2703,14 @@ function renderStrategi(host) {
           </select></div>
       </div>
       <div class="strategy-filter-actions"><button class="linkish" type="button" data-strategy-clear>Nullstill søk og filtre</button></div>
-      <p class="strategy-count" role="status" aria-live="polite">Viser ${filtered.length} av ${responses.length} svar</p>
-      <div class="strategy-list">${resultItems || '<div class="empty">Ingen svar passer til søket og filtrene.</div>'}</div>
+      <div class="strategy-results-head">
+        <p class="strategy-count" role="status" aria-live="polite">Viser ${filtered.length} av ${responses.length} svar</p>
+        <div class="strategy-view-toggle" role="group" aria-label="Velg visning">
+          <button class="chip" type="button" data-strategy-view="kanban" aria-pressed="${state.strategyView !== "list"}">Kanban</button>
+          <button class="chip" type="button" data-strategy-view="list" aria-pressed="${state.strategyView === "list"}">Liste</button>
+        </div>
+      </div>
+      ${resultsView}
     </section>
   </div>`;
 }
@@ -2789,6 +2872,7 @@ function stateFromUrl() {
   if (p.has("strategySource")) state.strategySource = p.get("strategySource");
   if (p.has("strategyAuthor")) state.strategyAuthor = p.get("strategyAuthor");
   if (p.has("strategySort") && ["newest", "oldest"].includes(p.get("strategySort"))) state.strategySort = p.get("strategySort");
+  if (p.has("strategyView") && ["kanban", "list"].includes(p.get("strategyView"))) state.strategyView = p.get("strategyView");
   for (const tema of Object.keys(state.ind)) {
     const key = `ind_${tema}`;
     if (p.has(key) && IND[p.get(key)]) state.ind[tema] = p.get(key);
@@ -2827,6 +2911,7 @@ function shareUrl() {
   put("strategySource", state.strategySource);
   put("strategyAuthor", state.strategyAuthor);
   put("strategySort", state.strategySort);
+  put("strategyView", state.strategyView);
   const url = new URL(window.location.href);
   url.search = p.toString();
   url.hash = "";
@@ -2943,6 +3028,10 @@ document.addEventListener("click", ev => {
   else if (t.dataset.strategyPickSource) {
     state.strategySource = t.dataset.strategyPickSource;
     state.strategyAuthor = "all";
+    render();
+  }
+  else if (t.dataset.strategyView) {
+    state.strategyView = t.dataset.strategyView;
     render();
   }
   else if (t.hasAttribute("data-strategy-clear")) {
