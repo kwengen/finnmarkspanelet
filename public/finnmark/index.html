@@ -537,6 +537,58 @@ details.tableview[open] > summary::before { content: "▾"; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* Strategikonferanse: flat tile view */
+.rail[hidden] { display: none !important; }
+.strategy-keyword-block { margin-top: 14px; }
+.strategy-keywords { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.strategy-keywords .chip { font-size: 12px; }
+.strategy-filter-note { color: var(--ink-muted); font-size: 12px; }
+.strategy-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 12px;
+}
+.strategy-tile {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  background: var(--surface);
+}
+.strategy-tile-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.strategy-tile-author { font-size: 13px; font-weight: 700; }
+.strategy-tile-source { margin-top: 3px; color: var(--accent-text); font-size: 11.5px; }
+.strategy-tile-date { color: var(--ink-muted); font-size: 11px; white-space: nowrap; }
+.strategy-tile-text {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.strategy-tile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: auto;
+  padding-top: 9px;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+@media (max-width: 560px) {
+  .strategy-tile-head { flex-direction: column; gap: 4px; }
+  .strategy-tile-date { white-space: normal; }
+}
 </style>
 
 <header class="masthead">
@@ -1143,6 +1195,8 @@ const state = {
   strategyAuthor: "all",
   strategySort: "newest",
   strategyView: "kanban",
+  strategyMunicipality: "all",
+  strategyKeyword: "all",
 };
 
 /* Farge følger kommunen, ikke rekkefølgen i utvalget: slotten låses ved
@@ -2642,126 +2696,130 @@ function renderStrategi(host) {
   const responses = STRATEGIKONFERANSE.responses;
   const sourceById = new Map(sources.map(source => [source.id, source]));
   const sourceFilter = sourceById.has(state.strategySource) ? state.strategySource : "all";
-  const query = state.strategyQuery.trim().toLocaleLowerCase("nb-NO");
+
+  const STRATEGI_KEYWORDS = [
+    "arbeid", "arbeidsplasser", "areal", "barn og unge", "beredskap",
+    "bolig", "bolyst", "bosetting", "fellesskap", "Finnmark",
+    "fraflytting", "helse", "industri", "infrastruktur", "kraft",
+    "klima og miljø", "kommuner", "kommunikasjon", "kultur", "natur",
+    "næring", "reindrift", "samferdsel", "skole", "sykehus",
+    "tillit", "trygghet", "utvikling", "verdier", "velferd",
+  ];
+
+  const normalizeSearch = value => String(value ?? "")
+    .toLocaleLowerCase("nb-NO")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const searchableText = response => {
+    const sourceTitle = sourceById.get(response.source)?.title || response.source;
+    return normalizeSearch([response.author, sourceTitle, response.text].join(" "));
+  };
+  const municipalities = REGIONS
+    .filter(region => region.key !== TOTAL_KEY)
+    .map(region => region.navn)
+    .sort((a, b) => a.localeCompare(b, "nb"));
+  const municipalityFilter = municipalities.includes(state.strategyMunicipality)
+    ? state.strategyMunicipality
+    : "all";
+  const keywordFilter = STRATEGI_KEYWORDS.includes(state.strategyKeyword)
+    ? state.strategyKeyword
+    : "all";
+  const query = normalizeSearch(state.strategyQuery.trim());
   const sourceCounts = new Map(sources.map(source => [
     source.id,
     responses.filter(response => response.source === source.id).length,
   ]));
-
-  const authors = [...new Set(responses
-    .filter(response => sourceFilter === "all" || response.source === sourceFilter)
-    .map(response => response.author))]
-    .sort((a, b) => a.localeCompare(b, "nb"));
+  const municipalityCounts = new Map(municipalities.map(municipality => [
+    municipality,
+    responses.filter(response => searchableText(response).includes(normalizeSearch(municipality))).length,
+  ]));
+  const keywordCounts = new Map(STRATEGI_KEYWORDS.map(keyword => [
+    keyword,
+    responses.filter(response => searchableText(response).includes(normalizeSearch(keyword))).length,
+  ]));
 
   const filtered = responses.filter(response => {
+    const text = searchableText(response);
     if (sourceFilter !== "all" && response.source !== sourceFilter) return false;
-    if (state.strategyAuthor !== "all" && response.author !== state.strategyAuthor) return false;
-    if (!query) return true;
-    const sourceTitle = sourceById.get(response.source)?.title || response.source;
-    return [response.author, sourceTitle, response.text]
-      .join(" ")
-      .toLocaleLowerCase("nb-NO")
-      .includes(query);
-  }).sort((a, b) => {
-    const delta = new Date(a.submittedAt) - new Date(b.submittedAt);
-    return state.strategySort === "oldest" ? delta : -delta;
+    if (municipalityFilter !== "all" && !text.includes(normalizeSearch(municipalityFilter))) return false;
+    if (keywordFilter !== "all" && !text.includes(normalizeSearch(keywordFilter))) return false;
+    if (query && !text.includes(query)) return false;
+    return true;
   });
 
   const dateFormatter = new Intl.DateTimeFormat("nb-NO", {
     day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
   const sourceButtons = [
-    `<button class="chip" type="button" data-strategy-pick-source="all" aria-pressed="${sourceFilter === "all"}">Alle svar (${responses.length})</button>`,
-    ...sources.map(source => `<button class="chip" type="button" data-strategy-pick-source="${escapeHTML(source.id)}" aria-pressed="${sourceFilter === source.id}">${escapeHTML(source.title)} (${sourceCounts.get(source.id)})</button>`),
+    \`<button class="chip" type="button" data-strategy-pick-source="all" aria-pressed="\${sourceFilter === "all"}">Alle svar (\${responses.length})</button>\`,
+    ...sources.map(source => \`<button class="chip" type="button" data-strategy-pick-source="\${escapeHTML(source.id)}" aria-pressed="\${sourceFilter === source.id}">\${escapeHTML(source.title)} (\${sourceCounts.get(source.id)})</button>\`),
   ].join("");
   const sourceOptions = [
-    `<option value="all"${sourceFilter === "all" ? " selected" : ""}>Alle arbeidsøkter (${responses.length})</option>`,
-    ...sources.map(source => `<option value="${escapeHTML(source.id)}"${sourceFilter === source.id ? " selected" : ""}>${escapeHTML(source.title)} (${sourceCounts.get(source.id)})</option>`),
+    \`<option value="all"\${sourceFilter === "all" ? " selected" : ""}>Alle arbeidsøkter (\${responses.length})</option>\`,
+    ...sources.map(source => \`<option value="\${escapeHTML(source.id)}"\${sourceFilter === source.id ? " selected" : ""}>\${escapeHTML(source.title)} (\${sourceCounts.get(source.id)})</option>\`),
   ].join("");
-  const authorOptions = [
-    `<option value="all">Alle avsendere</option>`,
-    ...authors.map(author => `<option value="${escapeHTML(author)}"${state.strategyAuthor === author ? " selected" : ""}>${escapeHTML(author)}</option>`),
+  const municipalityOptions = [
+    \`<option value="all"\${municipalityFilter === "all" ? " selected" : ""}>Alle kommuner</option>\`,
+    ...municipalities.map(municipality => \`<option value="\${escapeHTML(municipality)}"\${municipalityFilter === municipality ? " selected" : ""}>\${escapeHTML(municipality)} (\${municipalityCounts.get(municipality)})</option>\`),
   ].join("");
-  const visibleSources = sources.filter(source => sourceFilter === "all" || source.id === sourceFilter);
-  const strategyCard = response => {
-    const sourceTitle = sourceById.get(response.source)?.title || response.source;
-    return `<details class="strategy-kanban-card">
-      <summary>
-        <span class="strategy-card-author">${escapeHTML(response.author)}</span>
-        <time class="strategy-card-date" datetime="${escapeHTML(response.submittedAt)}">${escapeHTML(dateFormatter.format(new Date(response.submittedAt)))}</time>
-        <span class="strategy-card-preview">${strategyTextHTML(response.text)}</span>
-      </summary>
-      <div class="strategy-card-body">
-        <div class="strategy-card-meta"><span>${escapeHTML(sourceTitle)}</span><span>Padlet-side ${response.page}</span></div>
-      </div>
-    </details>`;
-  };
+  const keywordButtons = [
+    \`<button class="chip" type="button" data-strategy-keyword="all" aria-pressed="\${keywordFilter === "all"}">Alle nøkkelord</button>\`,
+    ...STRATEGI_KEYWORDS.map(keyword => \`<button class="chip" type="button" data-strategy-keyword="\${escapeHTML(keyword)}" aria-pressed="\${keywordFilter === keyword}">\${escapeHTML(keyword)} (\${keywordCounts.get(keyword)})</button>\`),
+  ].join("");
   const resultItems = filtered.map(response => {
     const sourceTitle = sourceById.get(response.source)?.title || response.source;
-    return `<details class="strategy-response">
-      <summary>
-        <span><span class="response-author">${escapeHTML(response.author)}</span>
-          <span class="response-source"> · ${escapeHTML(sourceTitle)}</span></span>
-        <time datetime="${escapeHTML(response.submittedAt)}">${escapeHTML(dateFormatter.format(new Date(response.submittedAt)))}</time>
-      </summary>
-      <div class="response-body">
-        <p class="response-text">${strategyTextHTML(response.text)}</p>
-        <div class="response-meta"><span>${escapeHTML(sourceTitle)}</span><span>Padlet-side ${response.page}</span></div>
+    return \`<article class="strategy-tile">
+      <div class="strategy-tile-head">
+        <div>
+          <div class="strategy-tile-author">\${escapeHTML(response.author)}</div>
+          <div class="strategy-tile-source">\${escapeHTML(sourceTitle)}</div>
+        </div>
+        <time class="strategy-tile-date" datetime="\${escapeHTML(response.submittedAt)}">\${escapeHTML(dateFormatter.format(new Date(response.submittedAt)))}</time>
       </div>
-    </details>`;
-  }).join("");
-  const boardItems = visibleSources.map(source => {
-    const sourceResponses = filtered.filter(response => response.source === source.id);
-    return `<section class="strategy-column" aria-labelledby="strategy-column-${escapeHTML(source.id)}">
-      <header class="strategy-column-head">
-        <h3 id="strategy-column-${escapeHTML(source.id)}">${escapeHTML(source.title)}</h3>
-        <span class="strategy-column-count">${sourceResponses.length} svar</span>
-      </header>
-      <div class="strategy-column-list">
-        ${sourceResponses.map(strategyCard).join("") || '<p class="strategy-column-empty">Ingen svar passer til filteret.</p>'}
+      <p class="strategy-tile-text">\${strategyTextHTML(response.text)}</p>
+      <div class="strategy-tile-meta">
+        <span>Arbeidsøkt: \${escapeHTML(sourceTitle)}</span>
+        <span>Padlet-side \${response.page}</span>
       </div>
-    </section>`;
+    </article>\`;
   }).join("");
-  const resultsView = state.strategyView === "list"
-    ? `<div class="strategy-list">${resultItems || '<div class="empty">Ingen svar passer til søket og filtrene.</div>'}</div>`
-    : `<div class="strategy-board" aria-label="Kanbanbord med svar fra Strategikonferansen">${boardItems}</div>`;
 
-  host.innerHTML = `<div class="strategy-panel">
+  host.innerHTML = \`<div class="strategy-panel">
     <section class="card strategy-intro">
-      <div class="card-head"><h2>Strategikonferanse 2026</h2><span class="unit">${responses.length} svar · ${sources.length} arbeidsøkter</span></div>
-      <p class="desc">Her er svarene fra gruppearbeidet samlet som kort i et kanbanbord. Søk i hele materialet, filtrer på arbeidsøkt eller avsender, og åpne et kort for å lese hele svaret.</p>
-      <div class="strategy-source-links" role="group" aria-label="Filtrer på arbeidsøkt">${sourceButtons}</div>
+      <div class="card-head"><h2>Strategikonferanse 2026</h2><span class="unit">\${responses.length} svar · \${sources.length} arbeidsøkter</span></div>
+      <p class="desc">Her vises alle svarene fra gruppearbeidet som fliser i opprinnelig rekkefølge. Hele teksten i hver oppføring er synlig som standard. Filtrer på arbeidsøkt, kommune eller nøkkelord, eller søk i hele materialet.</p>
+      <div class="strategy-source-links" role="group" aria-label="Filtrer på arbeidsøkt">\${sourceButtons}</div>
       <details class="strategy-questions">
         <summary>Se spørsmålene fra arbeidsøktene</summary>
-        <ul>${sources.map(source => `<li><strong>${escapeHTML(source.title)}:</strong> ${source.questions.map(escapeHTML).join(" · ")}</li>`).join("")}</ul>
+        <ul>\${sources.map(source => \`<li><strong>\${escapeHTML(source.title)}:</strong> \${source.questions.map(escapeHTML).join(" · ")}</li>\`).join("")}</ul>
       </details>
     </section>
 
     <section class="card">
       <div class="strategy-filters">
         <div class="field"><label class="field-label" for="strategySearch">Søk i svarene</label>
-          <input id="strategySearch" type="search" autocomplete="off" placeholder="Søk etter tema, sted eller formulering" value="${escapeHTML(state.strategyQuery)}" data-strategy-filter="strategyQuery"></div>
+          <input id="strategySearch" type="search" autocomplete="off" placeholder="Søk etter tema, sted eller formulering" value="\${escapeHTML(state.strategyQuery)}" data-strategy-filter="strategyQuery"></div>
         <div class="field"><label class="field-label" for="strategySource">Arbeidsøkt</label>
-          <select id="strategySource" data-strategy-filter="strategySource" aria-label="Arbeidsøkt">${sourceOptions}</select></div>
-        <div class="field"><label class="field-label" for="strategyAuthor">Avsender</label>
-          <select id="strategyAuthor" data-strategy-filter="strategyAuthor" aria-label="Avsender">${authorOptions}</select></div>
-        <div class="field"><label class="field-label" for="strategySort">Sorter</label>
-          <select id="strategySort" data-strategy-filter="strategySort" aria-label="Sorter svar">
-            <option value="newest"${state.strategySort === "newest" ? " selected" : ""}>Nyeste først</option>
-            <option value="oldest"${state.strategySort === "oldest" ? " selected" : ""}>Eldste først</option>
-          </select></div>
+          <select id="strategySource" data-strategy-filter="strategySource" aria-label="Arbeidsøkt">\${sourceOptions}</select></div>
+        <div class="field"><label class="field-label" for="strategyMunicipality">Kommune nevnt</label>
+          <select id="strategyMunicipality" data-strategy-filter="strategyMunicipality" aria-label="Filtrer på kommune som er nevnt">\${municipalityOptions}</select></div>
       </div>
-      <div class="strategy-filter-actions"><button class="linkish" type="button" data-strategy-clear>Nullstill søk og filtre</button></div>
+      <div class="strategy-keyword-block">
+        <div class="field-label">Nøkkelord fra alle oppføringene</div>
+        <div class="strategy-keywords" role="group" aria-label="Filtrer på nøkkelord">\${keywordButtons}</div>
+      </div>
+      <div class="strategy-filter-actions">
+        <button class="linkish" type="button" data-strategy-clear>Nullstill søk og filtre</button>
+        <span class="strategy-filter-note">Vises uten sortering, i opprinnelig rekkefølge.</span>
+      </div>
       <div class="strategy-results-head">
-        <p class="strategy-count" role="status" aria-live="polite">Viser ${filtered.length} av ${responses.length} svar</p>
-        <div class="strategy-view-toggle" role="group" aria-label="Velg visning">
-          <button class="chip" type="button" data-strategy-view="kanban" aria-pressed="${state.strategyView !== "list"}">Kanban</button>
-          <button class="chip" type="button" data-strategy-view="list" aria-pressed="${state.strategyView === "list"}">Liste</button>
-        </div>
+        <p class="strategy-count" role="status" aria-live="polite">Viser \${filtered.length} av \${responses.length} svar</p>
       </div>
-      ${resultsView}
+      \${resultItems
+        ? \`<div class="strategy-tiles" aria-label="Svar fra Strategikonferansen">\${resultItems}</div>\`
+        : '<div class="empty">Ingen svar passer til søket og filtrene.</div>'}
     </section>
-  </div>`;
+  </div>\`;
 }
 
 /* ── Sammenstillinger ───────────────────────────────────────────────────── */
@@ -2919,6 +2977,8 @@ function stateFromUrl() {
   if (p.has("scatterYear") && Number.isFinite(Number(p.get("scatterYear")))) state.scatterYear = Number(p.get("scatterYear"));
   if (p.has("strategyQuery")) state.strategyQuery = p.get("strategyQuery");
   if (p.has("strategySource")) state.strategySource = p.get("strategySource");
+  if (p.has("strategyMunicipality")) state.strategyMunicipality = p.get("strategyMunicipality");
+  if (p.has("strategyKeyword")) state.strategyKeyword = p.get("strategyKeyword");
   if (p.has("strategyAuthor")) state.strategyAuthor = p.get("strategyAuthor");
   if (p.has("strategySort") && ["newest", "oldest"].includes(p.get("strategySort"))) state.strategySort = p.get("strategySort");
   if (p.has("strategyView") && ["kanban", "list"].includes(p.get("strategyView"))) state.strategyView = p.get("strategyView");
@@ -2958,6 +3018,8 @@ function shareUrl() {
   put("scatterYear", state.scatterYear);
   put("strategyQuery", state.strategyQuery);
   put("strategySource", state.strategySource);
+  put("strategyMunicipality", state.strategyMunicipality);
+  put("strategyKeyword", state.strategyKeyword);
   put("strategyAuthor", state.strategyAuthor);
   put("strategySort", state.strategySort);
   put("strategyView", state.strategyView);
@@ -3047,7 +3109,11 @@ function render() {
   renderChips();
 
   const rail = document.querySelector(".rail");
-  if (rail) rail.hidden = state.tab === "strategi";
+  if (rail) {
+    const hideStrategyRail = state.tab === "strategi";
+    rail.hidden = hideStrategyRail;
+    rail.style.display = hideStrategyRail ? "none" : "";
+  }
 
   tabsEl.querySelectorAll("button").forEach(b =>
     b.setAttribute("aria-selected", String(b.dataset.tab === state.tab)));
@@ -3080,14 +3146,16 @@ document.addEventListener("click", ev => {
     state.strategyAuthor = "all";
     render();
   }
-  else if (t.dataset.strategyView) {
-    state.strategyView = t.dataset.strategyView;
+  else if (t.dataset.strategyKeyword) {
+    state.strategyKeyword = t.dataset.strategyKeyword;
     render();
   }
   else if (t.hasAttribute("data-strategy-clear")) {
     state.strategyQuery = "";
     state.strategySource = "all";
     state.strategyAuthor = "all";
+    state.strategyMunicipality = "all";
+    state.strategyKeyword = "all";
     state.strategySort = "newest";
     render();
   }
