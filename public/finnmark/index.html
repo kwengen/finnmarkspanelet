@@ -733,6 +733,60 @@ details.tableview[open] > summary::before { content: "▾"; }
     columns: 1;
   }
 }
+
+/* Strategikonferanse: clearer titles and structured response text */
+.strategy-tile-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+}
+.strategy-tile-heading { min-width: 0; }
+.strategy-tile-title {
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.28;
+  font-weight: 780;
+  letter-spacing: -0.01em;
+}
+.strategy-tile-author {
+  margin-top: 6px;
+  color: var(--ink-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.strategy-tile-source {
+  margin-top: 3px;
+  color: var(--accent-text);
+  font-size: 11px;
+  font-weight: 650;
+}
+.strategy-tile-text {
+  display: block;
+  color: var(--ink);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+.strategy-tile-text p {
+  margin: 0 0 8px;
+}
+.strategy-tile-text p:last-child { margin-bottom: 0; }
+.strategy-tile-text ul,
+.strategy-tile-text ol {
+  margin: 0 0 9px;
+  padding-left: 20px;
+}
+.strategy-tile-text li {
+  margin: 0 0 4px;
+  padding-left: 2px;
+}
+.strategy-tile-text li:last-child { margin-bottom: 0; }
+@media (max-width: 560px) {
+  .strategy-tile-head { grid-template-columns: 1fr; gap: 5px; }
+}
 </style>
 
 <header class="masthead">
@@ -823,7 +877,76 @@ const normalizeSearchText = value => String(value ?? "")
   .toLocaleLowerCase("nb-NO")
   .normalize("NFD")
   .replace(/[\u0300-\u036f]/g, "");
+const strategyResponseParts = value => {
+  const lines = String(value ?? "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map(line => line.trim())
+    .filter(Boolean);
+  if (!lines.length) return { title: "Innspill", lines: [], listHint: false };
 
+  const title = lines.shift().replace(/[:\s]+$/, "") || "Innspill";
+  const listHint = /prioritering|tre ting/i.test(title);
+  return { title, lines, listHint };
+};
+const strategyFormatResponseBody = (lines, listHint = false) => {
+  const blocks = [];
+  let paragraph = [];
+  let listType = listHint ? "unordered" : null;
+  let listItems = [];
+
+  const flushParagraph = () => {
+    if (paragraph.length) {
+      blocks.push(`<p>${paragraph.map(escapeHTML).join(" ")}</p>`);
+      paragraph = [];
+    }
+  };
+  const flushList = () => {
+    if (!listItems.length) return;
+    const tag = listType === "ordered" ? "ol" : "ul";
+    blocks.push(`<${tag}>${listItems.map(item => `<li>${escapeHTML(item)}</li>`).join("")}</${tag}>`);
+    listType = null;
+    listItems = [];
+  };
+
+  for (const line of lines) {
+    const bullet = line.match(/^([-–—•*]|\d+[.)])\s*/);
+    if (bullet) {
+      flushParagraph();
+      const nextType = /^\d/.test(bullet[1]) ? "ordered" : "unordered";
+      if (listType && listType !== nextType) flushList();
+      listType = nextType;
+      listItems.push(line.slice(bullet[0].length).trim());
+      continue;
+    }
+
+    if (listHint) {
+      listItems.push(line);
+      continue;
+    }
+
+    if (listType && listItems.length) {
+      const previousItem = listItems[listItems.length - 1];
+      if (!/[.!?:;]$/.test(previousItem)) {
+        listItems[listItems.length - 1] += ` ${line}`;
+        continue;
+      }
+    }
+
+    flushList();
+    const previous = paragraph[paragraph.length - 1] || "";
+    if (paragraph.length && (/^[a-zæøå]/.test(line) || /[-/]$/.test(previous))) {
+      paragraph.push(line);
+    } else {
+      flushParagraph();
+      paragraph = [line];
+    }
+  }
+
+  flushParagraph();
+  flushList();
+  return blocks.join("");
+};
 const ROLE_LABEL = {
   superadministrator: "Superadministrator",
   administrator: "Administrator",
@@ -2913,15 +3036,17 @@ function renderStrategi(host) {
 
   const resultItems = filtered.map(response => {
     const sourceTitle = sourceById.get(response.source)?.title || response.source;
+    const parts = strategyResponseParts(response.text);
     return `<article class="strategy-tile">
       <div class="strategy-tile-head">
-        <div class="strategy-tile-identity">
-          <div class="strategy-tile-author">${escapeHTML(response.author)}</div>
+        <div class="strategy-tile-heading">
+          <h3 class="strategy-tile-title">${escapeHTML(parts.title)}</h3>
+          <div class="strategy-tile-author">Innsender: ${escapeHTML(response.author)}</div>
           <div class="strategy-tile-source">${escapeHTML(sourceTitle)}</div>
         </div>
         <time class="strategy-tile-date" datetime="${escapeHTML(response.submittedAt)}">${escapeHTML(dateFormatter.format(new Date(response.submittedAt)))}</time>
       </div>
-      <p class="strategy-tile-text">${strategyTextHTML(response.text)}</p>
+      <div class="strategy-tile-text">${strategyFormatResponseBody(parts.lines, parts.listHint)}</div>
       <div class="strategy-tile-meta">
         <span>Arbeidsøkt: ${escapeHTML(sourceTitle)}</span>
         <span>Padlet-side ${response.page}</span>
