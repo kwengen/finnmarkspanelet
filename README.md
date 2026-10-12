@@ -1,7 +1,7 @@
 # Finnmarkspanelet
 
-Offentlig statistikkside om Finnmark, bygget på SSBs åpne API. Ingen kundedata,
-ingen regnskapsintegrasjon, ingen brukerinnlogging.
+Innlogget portal for Finnmark Arbeiderparti, bygget på SSBs åpne API. Alt
+frontend-innhold og alle dataendepunkter krever innlogging.
 
 **https://finnmarkspanelet.vercel.app**
 
@@ -13,17 +13,21 @@ offentlige unntak i tilgangskontrollen sin. Bakgrunnen står i
 ## Slik henger det sammen
 
 ```
-public/finnmark/index.html   ett selvstendig HTML-dokument, servert på /
-        │  henter ved hvert besøk
+proxy.ts                    håndhever innlogging på sider, statiske filer og API-er
+        │
+public/finnmark/index.html  ett selvstendig HTML-dokument, servert på /
+        │  henter ved hvert innloggede besøk
         ▼
-GET /api/ssb/<tema>          leser BARE lageret, henter aldri fra SSB selv
+GET /api/ssb/<tema>          krever innlogging og leser BARE lageret
         │
         ▼
 ssb_datasett / ssb_kilder    siste uttrekk som besto validering
         ▲
         │  skriver
-GET /api/ssb/refresh         kjøres for hånd, aldri av en tidsplan
-/admin                       samme henting, med status per kilde
+GET /api/ssb/refresh         krever superadministrator og kjøres for hånd
+/admin                       systemadministrasjon, kun superadministrator
+/brukere                     brukeradministrasjon for administratorer og
+                            superadministratorer
 ```
 
 Ingen sidevisning kan utløse et SSB-kall. Feiler en henting, eller feiler
@@ -32,14 +36,16 @@ valideringen, beholdes forrige gyldige uttrekk og serveres videre merket
 
 ## Miljøvariabler
 
-Alle tre settes i Vercel, kun i **Production**. Det er tre, ikke fire: en egen
-hemmelighet for henting ville gjort samme jobb som adminnøkkelen.
+Alle settes i Vercel, kun i **Production**. Publishable-nøkkelen kan sendes til
+nettleseren; service role-nøkkelen skal aldri eksponeres.
 
 | Variabel | Hva den er |
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://<ref>.supabase.co` for dette prosjektets egen database |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key for Auth-klienten |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service-role-nøkkelen til **samme** prosjekt |
-| `FINNMARK_ADMIN_KEY` | Nøkkelen `/admin` spør etter, og som gater `/api/ssb/refresh` |
+| `FINNMARK_BOOTSTRAP_SUPERADMIN_EMAIL` | E-posten som får første superadministratorrolle |
+| `NEXT_PUBLIC_SITE_URL` | Valgfri offentlig URL for invitasjonslenker |
 
 Ingen av dem skal ha samme verdi som noe i TinkrFlows. Hele poenget med
 utskillingen er at de to installasjonene ikke deler legitimasjon.
@@ -49,10 +55,9 @@ tidsplan ville bare vært et kall uten formål.
 
 ## Oppdatere data
 
-```bash
-curl -H "Authorization: Bearer $FINNMARK_ADMIN_KEY" \
-  https://finnmarkspanelet.vercel.app/api/ssb/refresh
-```
+Logg inn som superadministrator og bruk `/admin`. Der kan registrerte SSB-kilder
+oppdateres enkeltvis eller samlet. API-et krever den samme innloggede
+Supabase-sesjonen og kan ikke lenger åpnes med en delt nøkkel.
 
 Uten `?tema=` vurderes alle temaer. Bare kilder som mangler, sist feilet, eller
 er flagget for tvungen oppdatering i `/admin`, hentes — ikke hele temaet på
@@ -69,19 +74,19 @@ det der det stoppet. Vil du unngå avbruddet, ta ett tema om gangen med
 `?tema=okonomi` og så videre. I daglig drift er det aldri et problem — da
 mangler det bare noen få kilder om gangen.
 
-## Adminpanelet
+## Roller og administrasjon
 
-`/admin` viser status per underliggende kilde og lar deg utløse en henting
-eller flagge en kilde for neste kjøring.
+Det finnes tre roller:
 
-Porten er én delt nøkkel i `FINNMARK_ADMIN_KEY`, sendt som
-`Authorization: Bearer`. Nettleseren husker den bare i `sessionStorage`.
-Det er med vilje så lite: panelet styrer hvem som kan *hente* data, ikke hvem
-som får *se* den. Alt her er offentlig SSB-statistikk, og `/api/ssb/<tema>`
-serverer de samme tallene helt uten autorisasjon.
+- `bruker` — tilgang til hele frontend.
+- `administrator` — tilgang til hele frontend og `/brukere`, der vanlige brukere
+  kan inviteres, aktiveres, deaktiveres og slettes.
+- `superadministrator` — full brukeradministrasjon, rolleendringer og
+  systemadministrasjon på `/admin`.
 
-Skulle panelet en dag styre noe som ikke er offentlig, er dette for lite. Da er
-riktig svar ekte innlogging, ikke en lengre delt nøkkel.
+Den første superadministratoren opprettes ved at e-postadressen i
+`FINNMARK_BOOTSTRAP_SUPERADMIN_EMAIL` logger inn etter at migrasjonen er kjørt.
+Fjern deretter variabelen fra miljøet.
 
 ## Database
 
@@ -89,10 +94,10 @@ To frittstående tabeller, ingen fremmednøkler, ingen kobling til noe annet:
 
 - `ssb_datasett` — siste validerte uttrekk per tema
 - `ssb_kilder` — én rad per underliggende SSB-tabell
+- `user_roles` — serverstyrte roller koblet til Supabase Auth-brukere
 
-Begge har RLS med en policy som bare slipper `service_role` til. All tilgang
-går gjennom API-rutene; nettleseren snakker aldri direkte med databasen, og
-prosjektet bruker derfor ingen anon-nøkkel.
+Alle tabellene har RLS. `user_roles` og SSB-lageret er kun tilgjengelig for
+`service_role`; nettleseren snakker aldri direkte med databasen.
 
 Migrasjonene ligger i `supabase/migrations/`.
 

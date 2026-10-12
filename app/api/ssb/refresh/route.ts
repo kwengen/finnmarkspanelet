@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { avvisUautorisertAdmin } from '@/lib/admin-auth'
+import { isIdentity, requireApiRole } from '@/lib/auth'
 import { erTema, lesDatasett, oppdaterUsynkroniserte, TEMAER } from '@/lib/ssb'
 
 /**
@@ -15,11 +15,8 @@ import { erTema, lesDatasett, oppdaterUsynkroniserte, TEMAER } from '@/lib/ssb'
  * IKKE hele temaet på nytt hver gang. Uten ?tema vurderes alle kjente
  * temaer. Med ?tema=befolkning vurderes bare det ene.
  *
- *   curl -H "Authorization: Bearer $FINNMARK_ADMIN_KEY" \
- *     https://<domene>/api/ssb/refresh?tema=befolkning
- *
- * Samme nøkkel som /admin, fordi det er samme handling. Ruten finnes i
- * tillegg til panelet bare for å kunne skriptes og for første gangs kjøring.
+ * Ruten krever superadministrator-sesjon. Den finnes i tillegg til panelet
+ * for intern drift og første gangs kjøring.
  *
  * Sperren beskytter ingen hemmelighet — alt her er offentlig SSB-statistikk.
  * Den beskytter SSBs kallgrense (30 spørringer/minutt per IP) og vår egen
@@ -29,8 +26,8 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
 export async function GET(request: NextRequest) {
-  const avvist = avvisUautorisertAdmin(request)
-  if (avvist) return avvist
+  const access = await requireApiRole(request, ['superadministrator'])
+  if (!isIdentity(access)) return access
 
   const parametertema = request.nextUrl.searchParams.get('tema')
   if (parametertema !== null && !erTema(parametertema)) {

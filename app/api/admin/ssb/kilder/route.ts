@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { avvisUautorisertAdmin } from '@/lib/admin-auth'
+import { isIdentity, requireApiRole } from '@/lib/auth'
 import { KILDE_REGISTRY } from '@/lib/ssb'
 import { lesAlleKilder, sikreKilderRader } from '@/lib/ssb/store'
 
@@ -10,8 +10,8 @@ import { lesAlleKilder, sikreKilderRader } from '@/lib/ssb/store'
  * /admin. Leser bare lageret — gjør aldri et SSB-kall selv.
  */
 export async function GET(request: NextRequest) {
-  const avvist = avvisUautorisertAdmin(request)
-  if (avvist) return avvist
+  const access = await requireApiRole(request, ['superadministrator'])
+  if (!isIdentity(access)) return access
 
   try {
     // Sikrer at hver registrerte kilde har en rad å vise/oppdatere, selv om

@@ -147,6 +147,20 @@ body {
 .masthead .sub {
   color: var(--ink-muted); font-size: 13px;
 }
+.authbar {
+  position: absolute; top: 14px; right: 20px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
+  font-size: 12px; color: var(--ink-muted);
+}
+.authbar a, .authbar button {
+  font: inherit; color: var(--accent-text); text-decoration: none;
+  border: 1px solid var(--rule-strong); border-radius: var(--r); background: transparent;
+  padding: 3px 8px; cursor: pointer;
+}
+.authbar a:hover, .authbar button:hover { background: var(--surface-2); }
+@media (max-width: 760px) {
+  .authbar { position: static; justify-content: flex-start; margin-top: 10px; }
+}
 
 /* ── Control rail ───────────────────────────────────────────────────────── */
 .rail {
@@ -531,6 +545,12 @@ details.tableview[open] > summary::before { content: "▾"; }
     <h1>Finnmarkspanelet</h1>
     <span class="sub">18 kommuner · befolkning, kommuneøkonomi, næringsliv og valg</span>
   </div>
+  <div class="authbar" id="authbar" aria-label="Brukerkonto">
+    <span id="authUser"></span>
+    <a id="userAdminLink" href="/brukere" hidden>Brukere</a>
+    <a id="systemAdminLink" href="/admin" hidden>Datakilder</a>
+    <button id="logoutButton" type="button">Logg ut</button>
+  </div>
 </header>
 
 <nav class="tabs" id="tabs" role="tablist" aria-label="Temaer"></nav>
@@ -595,6 +615,35 @@ const escapeHTML = value => String(value ?? "").replace(/[&<>\"']/g, ch => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;",
 }[ch]));
 const strategyTextHTML = value => escapeHTML(value).replace(/\n/g, "<br>");
+
+const ROLE_LABEL = {
+  superadministrator: "Superadministrator",
+  administrator: "Administrator",
+  bruker: "Bruker",
+};
+
+async function initAuthBar() {
+  try {
+    const response = await fetch("/api/auth/me", { cache: "no-store" });
+    if (!response.ok) return;
+    const data = await response.json();
+    const user = document.getElementById("authUser");
+    const userAdminLink = document.getElementById("userAdminLink");
+    const systemAdminLink = document.getElementById("systemAdminLink");
+    if (user) user.textContent = `${data.email || "Innlogget"} · ${ROLE_LABEL[data.role] || data.role}`;
+    if (userAdminLink && ["administrator", "superadministrator"].includes(data.role)) userAdminLink.hidden = false;
+    if (systemAdminLink && data.role === "superadministrator") systemAdminLink.hidden = false;
+  } catch {
+    // Proxyen håndhever fortsatt innlogging selv om statuslinjen ikke lastes.
+  }
+}
+
+async function loggUt() {
+  await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+  window.location.assign("/login");
+}
+
+void initAuthBar();
 
 /* ═══════════════════════════════════════════════════════════════════════════
    0. DATAKILDE
@@ -3023,7 +3072,8 @@ document.addEventListener("click", ev => {
   const t = ev.target.closest("button");
   if (!t) return;
 
-  if (t.id === "copyShareLink") { copyShareUrl(); }
+  if (t.id === "logoutButton") { void loggUt(); }
+  else if (t.id === "copyShareLink") { copyShareUrl(); }
   else if (t.dataset.tab) { state.tab = t.dataset.tab; render(); }
   else if (t.dataset.strategyPickSource) {
     state.strategySource = t.dataset.strategyPickSource;

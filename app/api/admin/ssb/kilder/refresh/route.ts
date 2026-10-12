@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { avvisUautorisertAdmin } from '@/lib/admin-auth'
+import { isIdentity, requireApiRole } from '@/lib/auth'
 import { oppdaterUsynkroniserte, tvingKilde, erTema } from '@/lib/ssb'
 import { finnKildeDef } from '@/lib/ssb/kilder'
 
@@ -14,8 +14,8 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
 export async function POST(request: NextRequest) {
-  const avvist = avvisUautorisertAdmin(request)
-  if (avvist) return avvist
+  const access = await requireApiRole(request, ['superadministrator'])
+  if (!isIdentity(access)) return access
 
   try {
     const body = await request.json().catch(() => ({}))

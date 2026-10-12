@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { avvisUautorisertAdmin } from '@/lib/admin-auth'
+import { isIdentity, requireApiRole } from '@/lib/auth'
 import { finnKildeDef, KILDE_REGISTRY } from '@/lib/ssb/kilder'
 import { sikreKilderRader, settTvungenOppdatering } from '@/lib/ssb/store'
 
@@ -11,8 +11,8 @@ import { sikreKilderRader, settTvungenOppdatering } from '@/lib/ssb/store'
  * av Hent alle nå" — påvirker ikke lagrede tall før noen faktisk henter.
  */
 export async function POST(request: NextRequest) {
-  const avvist = avvisUautorisertAdmin(request)
-  if (avvist) return avvist
+  const access = await requireApiRole(request, ['superadministrator'])
+  if (!isIdentity(access)) return access
 
   try {
     const body = await request.json().catch(() => ({}))

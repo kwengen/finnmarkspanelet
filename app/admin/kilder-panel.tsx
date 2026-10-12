@@ -62,18 +62,8 @@ function StatusBadge({ status }: { status: KildeStatus['status'] }) {
   )
 }
 
-export default function KilderPanel({
-  nokkel,
-  onAvvist,
-}: {
-  nokkel: string
-  onAvvist: () => void
-}) {
-  // Adminnøkkelen sendes som Bearer på hvert kall. Den ligger bare i
-  // sessionStorage hos den som er logget på, aldri i en URL og aldri i en
-  // cookie, slik at den ikke følger med på en delt lenke ved et uhell.
-  const auth = { Authorization: `Bearer ${nokkel}` }
-
+export default function KilderPanel() {
+  // Same-origin Supabase-cookie sendes automatisk med disse kallene.
   const [kilder, setKilder] = useState<KildeStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -85,8 +75,9 @@ export default function KilderPanel({
   // ingenting blinker av at vi lar være å sette den på nytt her.
   async function last() {
     try {
-      const resp = await fetch('/api/admin/ssb/kilder', { headers: auth })
-      if (resp.status === 401) return onAvvist()
+      const resp = await fetch('/api/admin/ssb/kilder', { cache: 'no-store' })
+      if (resp.status === 401) return window.location.assign('/login')
+      if (resp.status === 403) throw new Error('Du har ikke tilgang til systemadministrasjon.')
       const data = await resp.json()
       if (!resp.ok) throw new Error(data.error ?? 'Ukjent feil')
       setKilder(Array.isArray(data.kilder) ? data.kilder : [])
@@ -102,11 +93,11 @@ export default function KilderPanel({
   // ikke den kaskaderenderingen regelen er laget for å fange. Regelen kan ikke
   // se forskjell på det og et synkront kall, derfor slås den av her og bare
   // her — ikke i konfigurasjonen, hvor den ville skjult ekte tilfeller.
-  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     void last()
-  }, [nokkel])
-  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
+  }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   async function hentAlle() {
     setKjorer('alle')
@@ -114,10 +105,10 @@ export default function KilderPanel({
     try {
       const resp = await fetch('/api/admin/ssb/kilder/refresh', {
         method: 'POST',
-        headers: { ...auth, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       })
-      if (resp.status === 401) return onAvvist()
+      if (resp.status === 401) return window.location.assign('/login')
       const data = await resp.json()
       if (resp.ok && data.ok) {
         setResultat(
@@ -142,10 +133,10 @@ export default function KilderPanel({
     try {
       const resp = await fetch('/api/admin/ssb/kilder/refresh', {
         method: 'POST',
-        headers: { ...auth, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ kildeId: id }),
       })
-      if (resp.status === 401) return onAvvist()
+      if (resp.status === 401) return window.location.assign('/login')
       const data = await resp.json()
       if (!resp.ok || !data.ok) setResultat(`Feil: ${data.error ?? 'Ukjent feil'}`)
       await last()
@@ -161,7 +152,7 @@ export default function KilderPanel({
     try {
       const resp = await fetch('/api/admin/ssb/kilder/flagg', {
         method: 'POST',
-        headers: { ...auth, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ kildeId: id, tvungen }),
       })
       if (!resp.ok) throw new Error()

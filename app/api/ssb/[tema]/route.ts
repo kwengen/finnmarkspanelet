@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { getCurrentIdentity } from '@/lib/auth'
 import { erTema, lesDatasett, TEMAER } from '@/lib/ssb'
 
 /**
  * GET /api/ssb/:tema
  *
- * Offentlig endepunkt. Serverer tall fra SSBs åpne API til Finnmarkspanelet.
+ * Innlogget leseendepunkt. Serverer tall fra SSBs åpne API til Finnmarkspanelet.
  *
  * Ren lesevei — leser bare lageret, henter ALDRI fra SSB selv. Det er
  * GET /api/ssb/refresh sin jobb, utløst manuelt når noen bestemmer at det
@@ -27,6 +28,13 @@ import { erTema, lesDatasett, TEMAER } from '@/lib/ssb'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ tema: string }> }) {
+  try {
+    if (!await getCurrentIdentity()) return NextResponse.json({ error: 'Innlogging kreves.' }, { status: 401 })
+  } catch (error) {
+    console.error('Autentisering feilet', error)
+    return NextResponse.json({ error: 'Autentisering er ikke konfigurert.' }, { status: 503 })
+  }
+
   const { tema } = await params
 
   if (!erTema(tema)) {
@@ -42,7 +50,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json(
       {
         feil: `Ingen data hentet for temaet «${tema}» ennå.`,
-        tiltak: 'Kjør GET /api/ssb/refresh (med FINNMARK_ADMIN_KEY som Bearer-token) for å hente det første gang.',
+        tiltak: 'Logg inn som superadministrator og bruk /admin for å hente data første gang.',
       },
       { status: 404, headers: { 'Cache-Control': 'no-store' } }
     )
@@ -53,6 +61,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // ligge lenge — de endres bare når noen bevisst kjører refresh.
   const sMaxAge = svar.status === 'foreldet' ? 300 : 21_600
   const respons = NextResponse.json(svar)
-  respons.headers.set('Cache-Control', `public, s-maxage=${sMaxAge}, stale-while-revalidate=86400`)
+  respons.headers.set('Cache-Control', `private, max-age=${Math.min(sMaxAge, 300)}, no-store`)
   return respons
 }
