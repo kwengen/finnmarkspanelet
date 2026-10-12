@@ -417,6 +417,62 @@ details.tableview[open] > summary::before { content: "▾"; }
   background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--rule);
 }
 
+/* ── Strategikonferanse ─────────────────────────────────────────────────── */
+.strategy-panel { display: grid; gap: 16px; }
+.strategy-intro .desc { max-width: 78ch; }
+.strategy-source-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.strategy-source-links .chip { font-size: 12px; }
+.strategy-filters {
+  display: grid;
+  grid-template-columns: minmax(240px, 2fr) minmax(180px, 1fr) minmax(180px, 1fr) auto;
+  gap: 12px 16px; align-items: end; margin-bottom: 12px;
+}
+.strategy-filters .field { min-width: 0; }
+.strategy-filters input, .strategy-filters select {
+  width: 100%; min-height: 32px; padding: 5px 8px;
+}
+.strategy-filter-actions { display: flex; align-items: center; gap: 10px; min-height: 32px; }
+.strategy-count { margin: 0 0 12px; font-size: 12px; color: var(--ink-muted); }
+.strategy-list { display: grid; gap: 8px; }
+.strategy-response {
+  border: 1px solid var(--rule); border-radius: var(--r);
+  background: var(--surface); overflow: hidden;
+}
+.strategy-response[open] { border-color: var(--rule-strong); }
+.strategy-response > summary {
+  cursor: pointer; list-style: none; display: grid;
+  grid-template-columns: minmax(0, 1fr) auto; gap: 4px 14px;
+  align-items: baseline; padding: 10px 12px;
+}
+.strategy-response > summary::-webkit-details-marker { display: none; }
+.strategy-response > summary::before {
+  content: "▸"; color: var(--accent-text); margin-right: 7px;
+  font-size: 10px; display: inline-block;
+}
+.strategy-response[open] > summary::before { content: "▾"; }
+.strategy-response .response-author { font-size: 13px; font-weight: 600; }
+.strategy-response .response-source { font-size: 11.5px; color: var(--accent-text); }
+.strategy-response time { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); }
+.strategy-response .response-body { padding: 0 12px 12px 31px; }
+.strategy-response .response-text { margin: 0; font-size: 13px; line-height: 1.55; white-space: normal; }
+.strategy-response .response-meta {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;
+  font-family: var(--mono); font-size: 10.5px; color: var(--ink-muted);
+}
+.strategy-questions { margin-top: 12px; border-top: 1px solid var(--grid); padding-top: 10px; }
+.strategy-questions summary { cursor: pointer; font-size: 12px; color: var(--accent-text); }
+.strategy-questions ul { margin: 7px 0 0 18px; padding: 0; color: var(--ink-2); font-size: 12.5px; }
+@media (max-width: 860px) {
+  .strategy-filters { grid-template-columns: 1fr 1fr; }
+  .strategy-filter-actions { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .strategy-filters { grid-template-columns: 1fr; }
+  .strategy-filter-actions { grid-column: auto; }
+  .strategy-response > summary { grid-template-columns: 1fr; gap: 3px; }
+  .strategy-response time { padding-left: 18px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
@@ -483,8 +539,15 @@ details.tableview[open] > summary::before { content: "▾"; }
   Henter tall fra SSB …
 </div>
 
+<script src="/finnmark/strategikonferanse-data.js"></script>
 <script>
 "use strict";
+
+const STRATEGIKONFERANSE = window.STRATEGIKONFERANSE_DATA || { sources: [], responses: [] };
+const escapeHTML = value => String(value ?? "").replace(/[&<>\"']/g, ch => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;",
+}[ch]));
+const strategyTextHTML = value => escapeHTML(value).replace(/\n/g, "<br>");
 
 /* ═══════════════════════════════════════════════════════════════════════════
    0. DATAKILDE
@@ -979,6 +1042,10 @@ const state = {
   scatterX: "andel67",
   scatterY: "pendlingsbalanse",
   scatterYear: 2024,
+  strategyQuery: "",
+  strategySource: "all",
+  strategyAuthor: "all",
+  strategySort: "newest",
 };
 
 /* Farge følger kommunen, ikke rekkefølgen i utvalget: slotten låses ved
@@ -1427,6 +1494,7 @@ const TABS = [
   { id: "valg",         navn: "Valgresultat" },
   { id: "valganalyser", navn: "Valganalyser" },
   { id: "sammen",       navn: "Sammenstillinger" },
+  { id: "strategi",      navn: "Strategikonferanse" },
 ];
 
 const BLURB = {
@@ -2471,6 +2539,99 @@ function renderValganalyser(host) {
     </section>`;
 }
 
+/* ── Strategikonferanse ─────────────────────────────────────────────────── */
+function renderStrategi(host) {
+  const sources = STRATEGIKONFERANSE.sources;
+  const responses = STRATEGIKONFERANSE.responses;
+  const sourceById = new Map(sources.map(source => [source.id, source]));
+  const sourceFilter = sourceById.has(state.strategySource) ? state.strategySource : "all";
+  const query = state.strategyQuery.trim().toLocaleLowerCase("nb-NO");
+  const sourceCounts = new Map(sources.map(source => [
+    source.id,
+    responses.filter(response => response.source === source.id).length,
+  ]));
+
+  const authors = [...new Set(responses
+    .filter(response => sourceFilter === "all" || response.source === sourceFilter)
+    .map(response => response.author))]
+    .sort((a, b) => a.localeCompare(b, "nb"));
+
+  const filtered = responses.filter(response => {
+    if (sourceFilter !== "all" && response.source !== sourceFilter) return false;
+    if (state.strategyAuthor !== "all" && response.author !== state.strategyAuthor) return false;
+    if (!query) return true;
+    const sourceTitle = sourceById.get(response.source)?.title || response.source;
+    return [response.author, sourceTitle, response.text]
+      .join(" ")
+      .toLocaleLowerCase("nb-NO")
+      .includes(query);
+  }).sort((a, b) => {
+    const delta = new Date(a.submittedAt) - new Date(b.submittedAt);
+    return state.strategySort === "oldest" ? delta : -delta;
+  });
+
+  const dateFormatter = new Intl.DateTimeFormat("nb-NO", {
+    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+  const sourceButtons = [
+    `<button class="chip" type="button" data-strategy-pick-source="all" aria-pressed="${sourceFilter === "all"}">Alle svar (${responses.length})</button>`,
+    ...sources.map(source => `<button class="chip" type="button" data-strategy-pick-source="${escapeHTML(source.id)}" aria-pressed="${sourceFilter === source.id}">${escapeHTML(source.title)} (${sourceCounts.get(source.id)})</button>`),
+  ].join("");
+  const sourceOptions = [
+    `<option value="all"${sourceFilter === "all" ? " selected" : ""}>Alle arbeidsøkter (${responses.length})</option>`,
+    ...sources.map(source => `<option value="${escapeHTML(source.id)}"${sourceFilter === source.id ? " selected" : ""}>${escapeHTML(source.title)} (${sourceCounts.get(source.id)})</option>`),
+  ].join("");
+  const authorOptions = [
+    `<option value="all">Alle avsendere</option>`,
+    ...authors.map(author => `<option value="${escapeHTML(author)}"${state.strategyAuthor === author ? " selected" : ""}>${escapeHTML(author)}</option>`),
+  ].join("");
+  const resultItems = filtered.map(response => {
+    const sourceTitle = sourceById.get(response.source)?.title || response.source;
+    return `<details class="strategy-response">
+      <summary>
+        <span><span class="response-author">${escapeHTML(response.author)}</span>
+          <span class="response-source"> · ${escapeHTML(sourceTitle)}</span></span>
+        <time datetime="${escapeHTML(response.submittedAt)}">${escapeHTML(dateFormatter.format(new Date(response.submittedAt)))}</time>
+      </summary>
+      <div class="response-body">
+        <p class="response-text">${strategyTextHTML(response.text)}</p>
+        <div class="response-meta"><span>${escapeHTML(sourceTitle)}</span><span>Padlet-side ${response.page}</span></div>
+      </div>
+    </details>`;
+  }).join("");
+
+  host.innerHTML = `<div class="strategy-panel">
+    <section class="card strategy-intro">
+      <div class="card-head"><h2>Strategikonferanse 2026</h2><span class="unit">${responses.length} svar · ${sources.length} arbeidsøkter</span></div>
+      <p class="desc">Her er svarene fra gruppearbeidet samlet på ett sted. Søk i hele materialet, filtrer på arbeidsøkt eller avsender, og åpne et innlegg for å lese hele svaret.</p>
+      <div class="strategy-source-links" role="group" aria-label="Filtrer på arbeidsøkt">${sourceButtons}</div>
+      <details class="strategy-questions">
+        <summary>Se spørsmålene fra arbeidsøktene</summary>
+        <ul>${sources.map(source => `<li><strong>${escapeHTML(source.title)}:</strong> ${source.questions.map(escapeHTML).join(" · ")}</li>`).join("")}</ul>
+      </details>
+    </section>
+
+    <section class="card">
+      <div class="strategy-filters">
+        <div class="field"><label class="field-label" for="strategySearch">Søk i svarene</label>
+          <input id="strategySearch" type="search" autocomplete="off" placeholder="Søk etter tema, sted eller formulering" value="${escapeHTML(state.strategyQuery)}" data-strategy-filter="strategyQuery"></div>
+        <div class="field"><label class="field-label" for="strategySource">Arbeidsøkt</label>
+          <select id="strategySource" data-strategy-filter="strategySource" aria-label="Arbeidsøkt">${sourceOptions}</select></div>
+        <div class="field"><label class="field-label" for="strategyAuthor">Avsender</label>
+          <select id="strategyAuthor" data-strategy-filter="strategyAuthor" aria-label="Avsender">${authorOptions}</select></div>
+        <div class="field"><label class="field-label" for="strategySort">Sorter</label>
+          <select id="strategySort" data-strategy-filter="strategySort" aria-label="Sorter svar">
+            <option value="newest"${state.strategySort === "newest" ? " selected" : ""}>Nyeste først</option>
+            <option value="oldest"${state.strategySort === "oldest" ? " selected" : ""}>Eldste først</option>
+          </select></div>
+      </div>
+      <div class="strategy-filter-actions"><button class="linkish" type="button" data-strategy-clear>Nullstill søk og filtre</button></div>
+      <p class="strategy-count" role="status" aria-live="polite">Viser ${filtered.length} av ${responses.length} svar</p>
+      <div class="strategy-list">${resultItems || '<div class="empty">Ingen svar passer til søket og filtrene.</div>'}</div>
+    </section>
+  </div>`;
+}
+
 /* ── Sammenstillinger ───────────────────────────────────────────────────── */
 function renderSammen(host) {
   const xi = state.scatterX, yi = state.scatterY, yr = state.scatterYear;
@@ -2624,6 +2785,10 @@ function stateFromUrl() {
   if (p.has("scatterX")) state.scatterX = p.get("scatterX");
   if (p.has("scatterY")) state.scatterY = p.get("scatterY");
   if (p.has("scatterYear") && Number.isFinite(Number(p.get("scatterYear")))) state.scatterYear = Number(p.get("scatterYear"));
+  if (p.has("strategyQuery")) state.strategyQuery = p.get("strategyQuery");
+  if (p.has("strategySource")) state.strategySource = p.get("strategySource");
+  if (p.has("strategyAuthor")) state.strategyAuthor = p.get("strategyAuthor");
+  if (p.has("strategySort") && ["newest", "oldest"].includes(p.get("strategySort"))) state.strategySort = p.get("strategySort");
   for (const tema of Object.keys(state.ind)) {
     const key = `ind_${tema}`;
     if (p.has(key) && IND[p.get(key)]) state.ind[tema] = p.get(key);
@@ -2658,6 +2823,10 @@ function shareUrl() {
   put("scatterX", state.scatterX);
   put("scatterY", state.scatterY);
   put("scatterYear", state.scatterYear);
+  put("strategyQuery", state.strategyQuery);
+  put("strategySource", state.strategySource);
+  put("strategyAuthor", state.strategyAuthor);
+  put("strategySort", state.strategySort);
   const url = new URL(window.location.href);
   url.search = p.toString();
   url.hash = "";
@@ -2743,6 +2912,9 @@ function render() {
   assignAgeSlots();
   renderChips();
 
+  const rail = document.querySelector(".rail");
+  if (rail) rail.hidden = state.tab === "strategi";
+
   tabsEl.querySelectorAll("button").forEach(b =>
     b.setAttribute("aria-selected", String(b.dataset.tab === state.tab)));
   mainEl.querySelectorAll(".panel").forEach(p => {
@@ -2755,6 +2927,7 @@ function render() {
   if (state.tab === "valg") renderValg(host);
   else if (state.tab === "valganalyser") renderValganalyser(host);
   else if (state.tab === "sammen") renderSammen(host);
+  else if (state.tab === "strategi") renderStrategi(host);
   else if (state.tab === "befolkning" && state.befView === "struktur") renderPyramid(host);
   else renderThemePanel(state.tab, host);
   syncShareUrl();
@@ -2767,6 +2940,18 @@ document.addEventListener("click", ev => {
 
   if (t.id === "copyShareLink") { copyShareUrl(); }
   else if (t.dataset.tab) { state.tab = t.dataset.tab; render(); }
+  else if (t.dataset.strategyPickSource) {
+    state.strategySource = t.dataset.strategyPickSource;
+    state.strategyAuthor = "all";
+    render();
+  }
+  else if (t.hasAttribute("data-strategy-clear")) {
+    state.strategyQuery = "";
+    state.strategySource = "all";
+    state.strategyAuthor = "all";
+    state.strategySort = "newest";
+    render();
+  }
   else if (t.dataset.region) {
     const k = t.dataset.region;
     state.selected = state.selected.includes(k)
@@ -2829,9 +3014,33 @@ document.addEventListener("click", ev => {
   }
 });
 
+document.addEventListener("input", ev => {
+  const input = ev.target;
+  const key = input.dataset.strategyFilter;
+  if (key !== "strategyQuery") return;
+
+  const caret = input.selectionStart;
+  state.strategyQuery = input.value;
+  const host = mainEl.querySelector('[data-panel="strategi"]');
+  if (!host) return;
+  renderStrategi(host);
+  syncShareUrl();
+  const next = host.querySelector('[data-strategy-filter="strategyQuery"]');
+  if (next) {
+    next.focus();
+    const position = caret == null ? next.value.length : Math.min(caret, next.value.length);
+    next.setSelectionRange(position, position);
+  }
+});
+
 document.addEventListener("change", ev => {
   const s = ev.target;
-  if (s.dataset.indpicker) { state.ind[s.dataset.indpicker] = s.value; render(); }
+  if (s.dataset.strategyFilter) {
+    state[s.dataset.strategyFilter] = s.value;
+    if (s.dataset.strategyFilter === "strategySource") state.strategyAuthor = "all";
+    render();
+  }
+  else if (s.dataset.indpicker) { state.ind[s.dataset.indpicker] = s.value; render(); }
   else if (s.dataset.valgregion !== undefined) { state.valgRegion = s.value; render(); }
   else if (s.dataset.hemiyear !== undefined) { state.hemiYear = +s.value; render(); }
   else if (s.dataset.pyrregion !== undefined) { state.pyrRegion = s.value; render(); }
