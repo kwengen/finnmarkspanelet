@@ -589,6 +589,130 @@ details.tableview[open] > summary::before { content: "▾"; }
   .strategy-tile-head { flex-direction: column; gap: 4px; }
   .strategy-tile-date { white-space: normal; }
 }
+
+/* Strategikonferanse: single-column tiles and multi-select keyword menu */
+.strategy-tiles {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.strategy-tile {
+  height: auto;
+  min-height: 0;
+  padding: 18px 20px 15px;
+  border: 1px solid #e5dfdc;
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fff 0%, #fdfafa 100%);
+  box-shadow: 0 5px 18px rgba(43, 31, 27, 0.06);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+.strategy-tile:hover {
+  border-color: #cdbbb5;
+  box-shadow: 0 9px 24px rgba(43, 31, 27, 0.10);
+  transform: translateY(-1px);
+}
+.strategy-tile-head {
+  padding-bottom: 11px;
+  border-bottom: 1px solid #eee8e5;
+}
+.strategy-tile-identity { min-width: 0; }
+.strategy-tile-author {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+}
+.strategy-tile-source {
+  margin-top: 4px;
+  color: var(--accent-text);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.strategy-tile-date {
+  color: var(--ink-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.strategy-tile-text {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13.5px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.strategy-tile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 3px;
+  padding-top: 10px;
+  border-top: 1px solid #eee8e5;
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+.strategy-keyword-dropdown {
+  margin-top: 16px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: #fff;
+}
+.strategy-keyword-dropdown > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 13px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+}
+.strategy-keyword-dropdown > summary::-webkit-details-marker { display: none; }
+.strategy-keyword-dropdown > summary::after {
+  content: "＋";
+  color: var(--accent-text);
+  font-size: 16px;
+}
+.strategy-keyword-dropdown[open] > summary::after { content: "−"; }
+.strategy-keyword-summary-label { font-weight: 700; }
+.strategy-keyword-summary-value { color: var(--ink-muted); }
+.strategy-keyword-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 1px 10px;
+  max-height: 330px;
+  overflow-y: auto;
+  padding: 10px 13px;
+  border-top: 1px solid var(--rule);
+  background: #fcfaf9;
+}
+.strategy-keyword-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.strategy-keyword-option:hover { background: #f1e9e6; }
+.strategy-keyword-option input { accent-color: var(--accent); }
+.strategy-keyword-count {
+  margin-left: auto;
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+.strategy-keyword-help {
+  margin: 0;
+  padding: 0 13px 11px;
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+@media (max-width: 560px) {
+  .strategy-keyword-dropdown > summary { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .strategy-keyword-options { grid-template-columns: 1fr; }
+}
 </style>
 
 <header class="masthead">
@@ -667,6 +791,18 @@ const escapeHTML = value => String(value ?? "").replace(/[&<>\"']/g, ch => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;",
 }[ch]));
 const strategyTextHTML = value => escapeHTML(value).replace(/\n/g, "<br>");
+const STRATEGI_KEYWORDS = [
+  "arbeid", "arbeidsplasser", "areal", "barn og unge", "beredskap",
+  "bolig", "bolyst", "bosetting", "fellesskap", "Finnmark",
+  "fraflytting", "helse", "industri", "infrastruktur", "kraft",
+  "klima og miljø", "kommuner", "kommunikasjon", "kultur", "natur",
+  "næring", "reindrift", "samferdsel", "skole", "sykehus",
+  "tillit", "trygghet", "utvikling", "verdier", "velferd",
+];
+const normalizeSearchText = value => String(value ?? "")
+  .toLocaleLowerCase("nb-NO")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "");
 
 const ROLE_LABEL = {
   superadministrator: "Superadministrator",
@@ -1196,7 +1332,7 @@ const state = {
   strategySort: "newest",
   strategyView: "kanban",
   strategyMunicipality: "all",
-  strategyKeyword: "all",
+  strategyKeywords: [],
 };
 
 /* Farge følger kommunen, ikke rekkefølgen i utvalget: slotten låses ved
@@ -2696,24 +2832,6 @@ function renderStrategi(host) {
   const responses = STRATEGIKONFERANSE.responses;
   const sourceById = new Map(sources.map(source => [source.id, source]));
   const sourceFilter = sourceById.has(state.strategySource) ? state.strategySource : "all";
-
-  const STRATEGI_KEYWORDS = [
-    "arbeid", "arbeidsplasser", "areal", "barn og unge", "beredskap",
-    "bolig", "bolyst", "bosetting", "fellesskap", "Finnmark",
-    "fraflytting", "helse", "industri", "infrastruktur", "kraft",
-    "klima og miljø", "kommuner", "kommunikasjon", "kultur", "natur",
-    "næring", "reindrift", "samferdsel", "skole", "sykehus",
-    "tillit", "trygghet", "utvikling", "verdier", "velferd",
-  ];
-
-  const normalizeSearch = value => String(value ?? "")
-    .toLocaleLowerCase("nb-NO")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-  const searchableText = response => {
-    const sourceTitle = sourceById.get(response.source)?.title || response.source;
-    return normalizeSearch([response.author, sourceTitle, response.text].join(" "));
-  };
   const municipalities = REGIONS
     .filter(region => region.key !== TOTAL_KEY)
     .map(region => region.navn)
@@ -2721,28 +2839,33 @@ function renderStrategi(host) {
   const municipalityFilter = municipalities.includes(state.strategyMunicipality)
     ? state.strategyMunicipality
     : "all";
-  const keywordFilter = STRATEGI_KEYWORDS.includes(state.strategyKeyword)
-    ? state.strategyKeyword
-    : "all";
-  const query = normalizeSearch(state.strategyQuery.trim());
+  const selectedKeywords = STRATEGI_KEYWORDS.filter(keyword =>
+    Array.isArray(state.strategyKeywords) && state.strategyKeywords.includes(keyword));
+  const query = normalizeSearchText(state.strategyQuery.trim());
+
+  const searchableText = response => {
+    const sourceTitle = sourceById.get(response.source)?.title || response.source;
+    return normalizeSearchText([response.author, sourceTitle, response.text].join(" "));
+  };
   const sourceCounts = new Map(sources.map(source => [
     source.id,
     responses.filter(response => response.source === source.id).length,
   ]));
   const municipalityCounts = new Map(municipalities.map(municipality => [
     municipality,
-    responses.filter(response => searchableText(response).includes(normalizeSearch(municipality))).length,
+    responses.filter(response => searchableText(response).includes(normalizeSearchText(municipality))).length,
   ]));
   const keywordCounts = new Map(STRATEGI_KEYWORDS.map(keyword => [
     keyword,
-    responses.filter(response => searchableText(response).includes(normalizeSearch(keyword))).length,
+    responses.filter(response => searchableText(response).includes(normalizeSearchText(keyword))).length,
   ]));
 
   const filtered = responses.filter(response => {
     const text = searchableText(response);
     if (sourceFilter !== "all" && response.source !== sourceFilter) return false;
-    if (municipalityFilter !== "all" && !text.includes(normalizeSearch(municipalityFilter))) return false;
-    if (keywordFilter !== "all" && !text.includes(normalizeSearch(keywordFilter))) return false;
+    if (municipalityFilter !== "all" && !text.includes(normalizeSearchText(municipalityFilter))) return false;
+    if (selectedKeywords.length && !selectedKeywords.some(keyword =>
+      text.includes(normalizeSearchText(keyword)))) return false;
     if (query && !text.includes(query)) return false;
     return true;
   });
@@ -2750,10 +2873,6 @@ function renderStrategi(host) {
   const dateFormatter = new Intl.DateTimeFormat("nb-NO", {
     day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
-  const sourceButtons = [
-    `<button class="chip" type="button" data-strategy-pick-source="all" aria-pressed="${sourceFilter === "all"}">Alle svar (${responses.length})</button>`,
-    ...sources.map(source => `<button class="chip" type="button" data-strategy-pick-source="${escapeHTML(source.id)}" aria-pressed="${sourceFilter === source.id}">${escapeHTML(source.title)} (${sourceCounts.get(source.id)})</button>`),
-  ].join("");
   const sourceOptions = [
     `<option value="all"${sourceFilter === "all" ? " selected" : ""}>Alle arbeidsøkter (${responses.length})</option>`,
     ...sources.map(source => `<option value="${escapeHTML(source.id)}"${sourceFilter === source.id ? " selected" : ""}>${escapeHTML(source.title)} (${sourceCounts.get(source.id)})</option>`),
@@ -2762,15 +2881,21 @@ function renderStrategi(host) {
     `<option value="all"${municipalityFilter === "all" ? " selected" : ""}>Alle kommuner</option>`,
     ...municipalities.map(municipality => `<option value="${escapeHTML(municipality)}"${municipalityFilter === municipality ? " selected" : ""}>${escapeHTML(municipality)} (${municipalityCounts.get(municipality)})</option>`),
   ].join("");
-  const keywordButtons = [
-    `<button class="chip" type="button" data-strategy-keyword="all" aria-pressed="${keywordFilter === "all"}">Alle nøkkelord</button>`,
-    ...STRATEGI_KEYWORDS.map(keyword => `<button class="chip" type="button" data-strategy-keyword="${escapeHTML(keyword)}" aria-pressed="${keywordFilter === keyword}">${escapeHTML(keyword)} (${keywordCounts.get(keyword)})</button>`),
-  ].join("");
+  const keywordOptions = STRATEGI_KEYWORDS.map(keyword => `
+    <label class="strategy-keyword-option">
+      <input type="checkbox" data-strategy-keyword="${escapeHTML(keyword)}" ${selectedKeywords.includes(keyword) ? "checked" : ""}>
+      <span>${escapeHTML(keyword)}</span>
+      <span class="strategy-keyword-count">${keywordCounts.get(keyword)}</span>
+    </label>`).join("");
+  const keywordSummary = selectedKeywords.length
+    ? `${selectedKeywords.length} nøkkelord valgt`
+    : "Alle nøkkelord";
+
   const resultItems = filtered.map(response => {
     const sourceTitle = sourceById.get(response.source)?.title || response.source;
     return `<article class="strategy-tile">
       <div class="strategy-tile-head">
-        <div>
+        <div class="strategy-tile-identity">
           <div class="strategy-tile-author">${escapeHTML(response.author)}</div>
           <div class="strategy-tile-source">${escapeHTML(sourceTitle)}</div>
         </div>
@@ -2785,16 +2910,6 @@ function renderStrategi(host) {
   }).join("");
 
   host.innerHTML = `<div class="strategy-panel">
-    <section class="card strategy-intro">
-      <div class="card-head"><h2>Strategikonferanse 2026</h2><span class="unit">${responses.length} svar · ${sources.length} arbeidsøkter</span></div>
-      <p class="desc">Her vises alle svarene fra gruppearbeidet som fliser i opprinnelig rekkefølge. Hele teksten i hver oppføring er synlig som standard. Filtrer på arbeidsøkt, kommune eller nøkkelord, eller søk i hele materialet.</p>
-      <div class="strategy-source-links" role="group" aria-label="Filtrer på arbeidsøkt">${sourceButtons}</div>
-      <details class="strategy-questions">
-        <summary>Se spørsmålene fra arbeidsøktene</summary>
-        <ul>${sources.map(source => `<li><strong>${escapeHTML(source.title)}:</strong> ${source.questions.map(escapeHTML).join(" · ")}</li>`).join("")}</ul>
-      </details>
-    </section>
-
     <section class="card">
       <div class="strategy-filters">
         <div class="field"><label class="field-label" for="strategySearch">Søk i svarene</label>
@@ -2804,10 +2919,20 @@ function renderStrategi(host) {
         <div class="field"><label class="field-label" for="strategyMunicipality">Kommune nevnt</label>
           <select id="strategyMunicipality" data-strategy-filter="strategyMunicipality" aria-label="Filtrer på kommune som er nevnt">${municipalityOptions}</select></div>
       </div>
-      <div class="strategy-keyword-block">
-        <div class="field-label">Nøkkelord fra alle oppføringene</div>
-        <div class="strategy-keywords" role="group" aria-label="Filtrer på nøkkelord">${keywordButtons}</div>
-      </div>
+      <details class="strategy-keyword-dropdown">
+        <summary>
+          <span class="strategy-keyword-summary-label">Filtrer på nøkkelord</span>
+          <span class="strategy-keyword-summary-value">${keywordSummary}</span>
+        </summary>
+        <div class="strategy-keyword-options">
+          <label class="strategy-keyword-option strategy-keyword-all">
+            <input type="checkbox" data-strategy-keyword="all" ${selectedKeywords.length ? "" : "checked"}>
+            <span>Alle nøkkelord</span>
+          </label>
+          ${keywordOptions}
+        </div>
+        <p class="strategy-keyword-help">Du kan velge flere. Et svar vises når minst ett valgt nøkkelord finnes i teksten.</p>
+      </details>
       <div class="strategy-filter-actions">
         <button class="linkish" type="button" data-strategy-clear>Nullstill søk og filtre</button>
         <span class="strategy-filter-note">Vises uten sortering, i opprinnelig rekkefølge.</span>
@@ -2978,7 +3103,11 @@ function stateFromUrl() {
   if (p.has("strategyQuery")) state.strategyQuery = p.get("strategyQuery");
   if (p.has("strategySource")) state.strategySource = p.get("strategySource");
   if (p.has("strategyMunicipality")) state.strategyMunicipality = p.get("strategyMunicipality");
-  if (p.has("strategyKeyword")) state.strategyKeyword = p.get("strategyKeyword");
+  if (p.has("strategyKeywords")) {
+    state.strategyKeywords = p.get("strategyKeywords").split(",").filter(keyword => STRATEGI_KEYWORDS.includes(keyword));
+  } else if (p.has("strategyKeyword") && STRATEGI_KEYWORDS.includes(p.get("strategyKeyword"))) {
+    state.strategyKeywords = [p.get("strategyKeyword")];
+  }
   if (p.has("strategyAuthor")) state.strategyAuthor = p.get("strategyAuthor");
   if (p.has("strategySort") && ["newest", "oldest"].includes(p.get("strategySort"))) state.strategySort = p.get("strategySort");
   if (p.has("strategyView") && ["kanban", "list"].includes(p.get("strategyView"))) state.strategyView = p.get("strategyView");
@@ -3019,7 +3148,7 @@ function shareUrl() {
   put("strategyQuery", state.strategyQuery);
   put("strategySource", state.strategySource);
   put("strategyMunicipality", state.strategyMunicipality);
-  put("strategyKeyword", state.strategyKeyword);
+  put("strategyKeywords", Array.isArray(state.strategyKeywords) ? state.strategyKeywords.join(",") : "");
   put("strategyAuthor", state.strategyAuthor);
   put("strategySort", state.strategySort);
   put("strategyView", state.strategyView);
@@ -3146,16 +3275,12 @@ document.addEventListener("click", ev => {
     state.strategyAuthor = "all";
     render();
   }
-  else if (t.dataset.strategyKeyword) {
-    state.strategyKeyword = t.dataset.strategyKeyword;
-    render();
-  }
   else if (t.hasAttribute("data-strategy-clear")) {
     state.strategyQuery = "";
     state.strategySource = "all";
     state.strategyAuthor = "all";
     state.strategyMunicipality = "all";
-    state.strategyKeyword = "all";
+    state.strategyKeywords = [];
     state.strategySort = "newest";
     render();
   }
@@ -3245,6 +3370,17 @@ document.addEventListener("change", ev => {
   if (s.dataset.strategyFilter) {
     state[s.dataset.strategyFilter] = s.value;
     if (s.dataset.strategyFilter === "strategySource") state.strategyAuthor = "all";
+    render();
+  }
+  else if (s.dataset.strategyKeyword !== undefined) {
+    if (s.dataset.strategyKeyword === "all") {
+      state.strategyKeywords = [];
+    } else {
+      const selected = new Set(state.strategyKeywords);
+      if (s.checked) selected.add(s.dataset.strategyKeyword);
+      else selected.delete(s.dataset.strategyKeyword);
+      state.strategyKeywords = STRATEGI_KEYWORDS.filter(keyword => selected.has(keyword));
+    }
     render();
   }
   else if (s.dataset.indpicker) { state.ind[s.dataset.indpicker] = s.value; render(); }
