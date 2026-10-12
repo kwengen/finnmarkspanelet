@@ -2751,75 +2751,75 @@ function renderStrategi(host) {
     day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
   const sourceButtons = [
-    \`<button class="chip" type="button" data-strategy-pick-source="all" aria-pressed="\${sourceFilter === "all"}">Alle svar (\${responses.length})</button>\`,
-    ...sources.map(source => \`<button class="chip" type="button" data-strategy-pick-source="\${escapeHTML(source.id)}" aria-pressed="\${sourceFilter === source.id}">\${escapeHTML(source.title)} (\${sourceCounts.get(source.id)})</button>\`),
+    `<button class="chip" type="button" data-strategy-pick-source="all" aria-pressed="${sourceFilter === "all"}">Alle svar (${responses.length})</button>`,
+    ...sources.map(source => `<button class="chip" type="button" data-strategy-pick-source="${escapeHTML(source.id)}" aria-pressed="${sourceFilter === source.id}">${escapeHTML(source.title)} (${sourceCounts.get(source.id)})</button>`),
   ].join("");
   const sourceOptions = [
-    \`<option value="all"\${sourceFilter === "all" ? " selected" : ""}>Alle arbeidsøkter (\${responses.length})</option>\`,
-    ...sources.map(source => \`<option value="\${escapeHTML(source.id)}"\${sourceFilter === source.id ? " selected" : ""}>\${escapeHTML(source.title)} (\${sourceCounts.get(source.id)})</option>\`),
+    `<option value="all"${sourceFilter === "all" ? " selected" : ""}>Alle arbeidsøkter (${responses.length})</option>`,
+    ...sources.map(source => `<option value="${escapeHTML(source.id)}"${sourceFilter === source.id ? " selected" : ""}>${escapeHTML(source.title)} (${sourceCounts.get(source.id)})</option>`),
   ].join("");
   const municipalityOptions = [
-    \`<option value="all"\${municipalityFilter === "all" ? " selected" : ""}>Alle kommuner</option>\`,
-    ...municipalities.map(municipality => \`<option value="\${escapeHTML(municipality)}"\${municipalityFilter === municipality ? " selected" : ""}>\${escapeHTML(municipality)} (\${municipalityCounts.get(municipality)})</option>\`),
+    `<option value="all"${municipalityFilter === "all" ? " selected" : ""}>Alle kommuner</option>`,
+    ...municipalities.map(municipality => `<option value="${escapeHTML(municipality)}"${municipalityFilter === municipality ? " selected" : ""}>${escapeHTML(municipality)} (${municipalityCounts.get(municipality)})</option>`),
   ].join("");
   const keywordButtons = [
-    \`<button class="chip" type="button" data-strategy-keyword="all" aria-pressed="\${keywordFilter === "all"}">Alle nøkkelord</button>\`,
-    ...STRATEGI_KEYWORDS.map(keyword => \`<button class="chip" type="button" data-strategy-keyword="\${escapeHTML(keyword)}" aria-pressed="\${keywordFilter === keyword}">\${escapeHTML(keyword)} (\${keywordCounts.get(keyword)})</button>\`),
+    `<button class="chip" type="button" data-strategy-keyword="all" aria-pressed="${keywordFilter === "all"}">Alle nøkkelord</button>`,
+    ...STRATEGI_KEYWORDS.map(keyword => `<button class="chip" type="button" data-strategy-keyword="${escapeHTML(keyword)}" aria-pressed="${keywordFilter === keyword}">${escapeHTML(keyword)} (${keywordCounts.get(keyword)})</button>`),
   ].join("");
   const resultItems = filtered.map(response => {
     const sourceTitle = sourceById.get(response.source)?.title || response.source;
-    return \`<article class="strategy-tile">
+    return `<article class="strategy-tile">
       <div class="strategy-tile-head">
         <div>
-          <div class="strategy-tile-author">\${escapeHTML(response.author)}</div>
-          <div class="strategy-tile-source">\${escapeHTML(sourceTitle)}</div>
+          <div class="strategy-tile-author">${escapeHTML(response.author)}</div>
+          <div class="strategy-tile-source">${escapeHTML(sourceTitle)}</div>
         </div>
-        <time class="strategy-tile-date" datetime="\${escapeHTML(response.submittedAt)}">\${escapeHTML(dateFormatter.format(new Date(response.submittedAt)))}</time>
+        <time class="strategy-tile-date" datetime="${escapeHTML(response.submittedAt)}">${escapeHTML(dateFormatter.format(new Date(response.submittedAt)))}</time>
       </div>
-      <p class="strategy-tile-text">\${strategyTextHTML(response.text)}</p>
+      <p class="strategy-tile-text">${strategyTextHTML(response.text)}</p>
       <div class="strategy-tile-meta">
-        <span>Arbeidsøkt: \${escapeHTML(sourceTitle)}</span>
-        <span>Padlet-side \${response.page}</span>
+        <span>Arbeidsøkt: ${escapeHTML(sourceTitle)}</span>
+        <span>Padlet-side ${response.page}</span>
       </div>
-    </article>\`;
+    </article>`;
   }).join("");
 
-  host.innerHTML = \`<div class="strategy-panel">
+  host.innerHTML = `<div class="strategy-panel">
     <section class="card strategy-intro">
-      <div class="card-head"><h2>Strategikonferanse 2026</h2><span class="unit">\${responses.length} svar · \${sources.length} arbeidsøkter</span></div>
+      <div class="card-head"><h2>Strategikonferanse 2026</h2><span class="unit">${responses.length} svar · ${sources.length} arbeidsøkter</span></div>
       <p class="desc">Her vises alle svarene fra gruppearbeidet som fliser i opprinnelig rekkefølge. Hele teksten i hver oppføring er synlig som standard. Filtrer på arbeidsøkt, kommune eller nøkkelord, eller søk i hele materialet.</p>
-      <div class="strategy-source-links" role="group" aria-label="Filtrer på arbeidsøkt">\${sourceButtons}</div>
+      <div class="strategy-source-links" role="group" aria-label="Filtrer på arbeidsøkt">${sourceButtons}</div>
       <details class="strategy-questions">
         <summary>Se spørsmålene fra arbeidsøktene</summary>
-        <ul>\${sources.map(source => \`<li><strong>\${escapeHTML(source.title)}:</strong> \${source.questions.map(escapeHTML).join(" · ")}</li>\`).join("")}</ul>
+        <ul>${sources.map(source => `<li><strong>${escapeHTML(source.title)}:</strong> ${source.questions.map(escapeHTML).join(" · ")}</li>`).join("")}</ul>
       </details>
     </section>
 
     <section class="card">
       <div class="strategy-filters">
         <div class="field"><label class="field-label" for="strategySearch">Søk i svarene</label>
-          <input id="strategySearch" type="search" autocomplete="off" placeholder="Søk etter tema, sted eller formulering" value="\${escapeHTML(state.strategyQuery)}" data-strategy-filter="strategyQuery"></div>
+          <input id="strategySearch" type="search" autocomplete="off" placeholder="Søk etter tema, sted eller formulering" value="${escapeHTML(state.strategyQuery)}" data-strategy-filter="strategyQuery"></div>
         <div class="field"><label class="field-label" for="strategySource">Arbeidsøkt</label>
-          <select id="strategySource" data-strategy-filter="strategySource" aria-label="Arbeidsøkt">\${sourceOptions}</select></div>
+          <select id="strategySource" data-strategy-filter="strategySource" aria-label="Arbeidsøkt">${sourceOptions}</select></div>
         <div class="field"><label class="field-label" for="strategyMunicipality">Kommune nevnt</label>
-          <select id="strategyMunicipality" data-strategy-filter="strategyMunicipality" aria-label="Filtrer på kommune som er nevnt">\${municipalityOptions}</select></div>
+          <select id="strategyMunicipality" data-strategy-filter="strategyMunicipality" aria-label="Filtrer på kommune som er nevnt">${municipalityOptions}</select></div>
       </div>
       <div class="strategy-keyword-block">
         <div class="field-label">Nøkkelord fra alle oppføringene</div>
-        <div class="strategy-keywords" role="group" aria-label="Filtrer på nøkkelord">\${keywordButtons}</div>
+        <div class="strategy-keywords" role="group" aria-label="Filtrer på nøkkelord">${keywordButtons}</div>
       </div>
       <div class="strategy-filter-actions">
         <button class="linkish" type="button" data-strategy-clear>Nullstill søk og filtre</button>
         <span class="strategy-filter-note">Vises uten sortering, i opprinnelig rekkefølge.</span>
       </div>
       <div class="strategy-results-head">
-        <p class="strategy-count" role="status" aria-live="polite">Viser \${filtered.length} av \${responses.length} svar</p>
+        <p class="strategy-count" role="status" aria-live="polite">Viser ${filtered.length} av ${responses.length} svar</p>
       </div>
-      \${resultItems
-        ? \`<div class="strategy-tiles" aria-label="Svar fra Strategikonferansen">\${resultItems}</div>\`
+      ${resultItems
+        ? `<div class="strategy-tiles" aria-label="Svar fra Strategikonferansen">${resultItems}</div>`
         : '<div class="empty">Ingen svar passer til søket og filtrene.</div>'}
     </section>
-  </div>\`;
+  </div>`;
 }
 
 /* ── Sammenstillinger ───────────────────────────────────────────────────── */
