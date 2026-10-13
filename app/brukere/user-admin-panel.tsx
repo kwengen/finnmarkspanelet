@@ -87,7 +87,7 @@ export default function UserAdminPanel({ role }: { role: AppRole }) {
     setMessage(null)
     setGeneratedLink(null)
     try {
-      const response = await fetch(\`/api/admin/users/\${user.id}\`, { method: 'POST' })
+      const response = await fetch(`/api/admin/users/${user.id}`, { method: 'POST' })
       const data = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(data.error ?? 'Den nye invitasjonen kunne ikke sendes.')
       if (typeof data.actionLink === 'string') {
@@ -118,7 +118,7 @@ export default function UserAdminPanel({ role }: { role: AppRole }) {
     setError(null)
     setMessage(null)
     setGeneratedLink(null)
-    const response = await fetch(\`/api/admin/users/\${id}\`, {
+    const response = await fetch(`/api/admin/users/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(changes),
@@ -130,12 +130,12 @@ export default function UserAdminPanel({ role }: { role: AppRole }) {
   }
 
   async function removeUser(user: ManagedUser) {
-    if (!window.confirm(\`Slette \${user.email ?? 'brukeren'}? Dette kan ikke angres.\`)) return
+    if (!window.confirm(`Slette ${user.email ?? 'brukeren'}? Dette kan ikke angres.`)) return
     setError(null)
     setMessage(null)
     setGeneratedLink(null)
     try {
-      const response = await fetch(\`/api/admin/users/\${user.id}\`, { method: 'DELETE' })
+      const response = await fetch(`/api/admin/users/${user.id}`, { method: 'DELETE' })
       const data = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(data.error ?? 'Brukeren kunne ikke slettes.')
       setMessage('Brukeren er slettet.')
