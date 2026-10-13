@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const service = await createServiceClient()
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || new URL(request.url).origin
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, '') || 'https://finnmarkspanelet.vercel.app'
     const { data, error } = await service.auth.admin.inviteUserByEmail(email, {
       redirectTo: `${siteUrl}/auth/callback?next=/sett-passord`,
     })
