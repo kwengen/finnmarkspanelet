@@ -95,7 +95,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || new URL(request.url).origin
-    const redirectTo = \`${siteUrl}/auth/callback?next=/sett-passord\`
+    const redirectTo = `${siteUrl}/auth/callback?next=/sett-passord`
     const { error: resendError } = await service.auth.resend({
       type: 'signup',
       email: user.email,
