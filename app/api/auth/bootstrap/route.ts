@@ -3,7 +3,7 @@ import { createAuthServerClient } from '@/lib/supabase/auth-server'
 import { createServiceClient } from '@/lib/supabase/server'
 
 function siteUrl(request: Request): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL?.trim() || new URL(request.url).origin).replace(/\/$/, '')
+  return (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://finnmarkspanelet.vercel.app').replace(/\/$/, '')
 }
 
 export async function POST(request: Request) {
