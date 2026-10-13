@@ -70,6 +70,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const access = await requireApiRole(request, ['superadministrator', 'administrator'])
   if (!isIdentity(access)) return access
   const { id } = await params
+  const body = await request.json().catch(() => ({}))
+  const action = body?.action === 'reset-password' ? 'reset-password' : 'resend-invite'
 
   try {
     const service = await createServiceClient()
@@ -79,13 +81,33 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const user = userResult.user
-    if (user.email_confirmed_at) {
-      return NextResponse.json({
-        error: 'Denne brukeren har allerede aktivert kontoen. Send ny invitasjon bare til brukere som står som invitert.',
-      }, { status: 400 })
-    }
     if (!user.email) {
       return NextResponse.json({ error: 'Brukeren mangler e-postadresse.' }, { status: 400 })
+    }
+
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || new URL(request.url).origin
+    const redirectTo = siteUrl + '/auth/callback?next=/sett-passord'
+
+    if (action === 'reset-password') {
+      if (!user.email_confirmed_at) {
+        return NextResponse.json({
+          error: 'Brukeren har ikke aktivert kontoen ennå. Send en ny invitasjon i stedet.',
+        }, { status: 400 })
+      }
+
+      const { error: resetError } = await service.auth.resetPasswordForEmail(user.email, {
+        redirectTo,
+      })
+      if (resetError) {
+        return NextResponse.json({ error: 'Passordresettingslenken kunne ikke sendes.' }, { status: 400 })
+      }
+      return NextResponse.json({ ok: true, sent: true })
+    }
+
+    if (user.email_confirmed_at) {
+      return NextResponse.json({
+        error: 'Denne brukeren har allerede aktivert kontoen. Send passordlenke i stedet.',
+      }, { status: 400 })
     }
 
     const currentRole = await rolleFor(service, id)
@@ -94,8 +116,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Administratorer kan bare sende nye invitasjoner til vanlige brukere.' }, { status: 403 })
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || new URL(request.url).origin
-    const redirectTo = `${siteUrl}/auth/callback?next=/sett-passord`
     const { error: resendError } = await service.auth.resend({
       type: 'signup',
       email: user.email,
@@ -120,8 +140,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     return NextResponse.json({ ok: true, sent: false, actionLink })
   } catch (error) {
-    console.error('Kunne ikke sende ny invitasjon', error)
-    return NextResponse.json({ error: 'Den nye invitasjonen kunne ikke sendes.' }, { status: 500 })
+    console.error(action === 'reset-password' ? 'Kunne ikke sende passordresetting' : 'Kunne ikke sende ny invitasjon', error)
+    return NextResponse.json({
+      error: action === 'reset-password'
+        ? 'Passordresettingslenken kunne ikke sendes.'
+        : 'Den nye invitasjonen kunne ikke sendes.',
+    }, { status: 500 })
   }
 }
 
