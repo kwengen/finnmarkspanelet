@@ -109,7 +109,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { data: linkData, error: linkError } = await service.auth.admin.generateLink({
       type: 'invite',
       email: user.email,
-      redirectTo,
+      options: { redirectTo },
     })
     const actionLink = linkData?.properties?.action_link
     if (linkError || !actionLink) {
