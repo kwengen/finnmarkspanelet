@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createBrowserSupabaseClient } from '@/lib/supabase/browser'
 
 const EXPIRED_INVITE_MESSAGE = 'Invitasjonslenken har gått ut eller er allerede brukt. Be administratoren om å sende en ny invitasjon.'
 
@@ -14,17 +15,41 @@ export default function LoginForm({ next }: { next: string }) {
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+    const accessToken = fragment.get('access_token')
+    const refreshToken = fragment.get('refresh_token')
     const errorCode = fragment.get('error_code')
     const description = fragment.get('error_description')?.toLowerCase() ?? ''
     const isExpiredInvite = errorCode === 'otp_expired'
       || description.includes('expired')
       || description.includes('invalid')
 
+    if (accessToken && refreshToken) {
+      setLoading(true)
+      async function restoreSession() {
+        try {
+          const supabase = createBrowserSupabaseClient()
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          })
+          if (sessionError) throw sessionError
+          window.history.replaceState(null, '', window.location.pathname + window.location.search)
+          window.location.assign(next === '/' ? '/sett-passord' : next)
+        } catch {
+          setError('Invitasjonslenken kunne ikke brukes. Be administratoren om å sende en ny invitasjon.')
+        } finally {
+          setLoading(false)
+        }
+      }
+      void restoreSession()
+      return
+    }
+
     if (isExpiredInvite) {
       setError(EXPIRED_INVITE_MESSAGE)
       window.history.replaceState(null, '', window.location.pathname + window.location.search)
     }
-  }, [])
+  }, [next])
   /* eslint-enable react-hooks/set-state-in-effect */
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
