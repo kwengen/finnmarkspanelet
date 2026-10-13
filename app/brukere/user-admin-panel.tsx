@@ -31,6 +31,7 @@ export default function UserAdminPanel({ role }: { role: AppRole }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [resendingUserId, setResendingUserId] = useState<string | null>(null)
+  const [resettingUserId, setResettingUserId] = useState<string | null>(null)
   const [generatedLink, setGeneratedLink] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -101,6 +102,28 @@ export default function UserAdminPanel({ role }: { role: AppRole }) {
       setError(cause instanceof Error ? cause.message : 'Den nye invitasjonen kunne ikke sendes.')
     } finally {
       setResendingUserId(null)
+    }
+  }
+
+  async function resetPassword(user: ManagedUser) {
+    if (!user.email) return
+    setResettingUserId(user.id)
+    setError(null)
+    setMessage(null)
+    setGeneratedLink(null)
+    try {
+      const response = await fetch('/api/admin/users/' + user.id, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset-password' }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error ?? 'Passordresettingslenken kunne ikke sendes.')
+      setMessage('Passordresettingslenken er sendt på e-post.')
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Passordresettingslenken kunne ikke sendes.')
+    } finally {
+      setResettingUserId(null)
     }
   }
 
@@ -211,6 +234,11 @@ export default function UserAdminPanel({ role }: { role: AppRole }) {
                   {!user.confirmed && user.email && (
                     <button type="button" onClick={() => void resendInvitation(user)} disabled={resendingUserId === user.id} className="rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50">
                       {resendingUserId === user.id ? 'Sender …' : 'Send ny invitasjon'}
+                    </button>
+                  )}
+                  {user.confirmed && user.active && user.email && (
+                    <button type="button" onClick={() => void resetPassword(user)} disabled={resettingUserId === user.id} className="rounded-lg border border-blue-300 px-3 py-1.5 text-xs font-medium text-blue-800 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50">
+                      {resettingUserId === user.id ? 'Sender …' : 'Send passordlenke'}
                     </button>
                   )}
                   <button type="button" onClick={() => void updateUser(user.id, { active: !user.active }).catch((cause) => setError(cause instanceof Error ? cause.message : 'Brukeren kunne ikke endres.'))} className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50">
