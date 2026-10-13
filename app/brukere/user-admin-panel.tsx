@@ -30,6 +30,8 @@ export default function UserAdminPanel({ role }: { role: AppRole }) {
   const [newRole, setNewRole] = useState<AppRole>('bruker')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [resendingUserId, setResendingUserId] = useState<string | null>(null)
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
@@ -59,6 +61,7 @@ export default function UserAdminPanel({ role }: { role: AppRole }) {
     setSaving(true)
     setError(null)
     setMessage(null)
+    setGeneratedLink(null)
     try {
       const response = await fetch('/api/admin/users', {
         method: 'POST',
@@ -77,10 +80,45 @@ export default function UserAdminPanel({ role }: { role: AppRole }) {
     }
   }
 
+  async function resendInvitation(user: ManagedUser) {
+    if (!user.email) return
+    setResendingUserId(user.id)
+    setError(null)
+    setMessage(null)
+    setGeneratedLink(null)
+    try {
+      const response = await fetch(\`/api/admin/users/\${user.id}\`, { method: 'POST' })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error ?? 'Den nye invitasjonen kunne ikke sendes.')
+      if (typeof data.actionLink === 'string') {
+        setGeneratedLink(data.actionLink)
+        setMessage('E-posten kunne ikke sendes automatisk. En ny invitasjonslenke er laget – kopier den og send den til brukeren.')
+      } else {
+        setMessage('Ny invitasjon er sendt på e-post.')
+      }
+      await loadUsers()
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Den nye invitasjonen kunne ikke sendes.')
+    } finally {
+      setResendingUserId(null)
+    }
+  }
+
+  async function copyGeneratedLink() {
+    if (!generatedLink) return
+    try {
+      await navigator.clipboard.writeText(generatedLink)
+      setMessage('Invitasjonslenken er kopiert.')
+    } catch {
+      setError('Lenken kunne ikke kopieres automatisk. Marker og kopier den manuelt.')
+    }
+  }
+
   async function updateUser(id: string, changes: { role?: AppRole; active?: boolean }) {
     setError(null)
     setMessage(null)
-    const response = await fetch(`/api/admin/users/${id}`, {
+    setGeneratedLink(null)
+    const response = await fetch(\`/api/admin/users/\${id}\`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(changes),
@@ -92,11 +130,12 @@ export default function UserAdminPanel({ role }: { role: AppRole }) {
   }
 
   async function removeUser(user: ManagedUser) {
-    if (!window.confirm(`Slette ${user.email ?? 'brukeren'}? Dette kan ikke angres.`)) return
+    if (!window.confirm(\`Slette \${user.email ?? 'brukeren'}? Dette kan ikke angres.\`)) return
     setError(null)
     setMessage(null)
+    setGeneratedLink(null)
     try {
-      const response = await fetch(`/api/admin/users/${user.id}`, { method: 'DELETE' })
+      const response = await fetch(\`/api/admin/users/\${user.id}\`, { method: 'DELETE' })
       const data = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(data.error ?? 'Brukeren kunne ikke slettes.')
       setMessage('Brukeren er slettet.')
@@ -133,6 +172,18 @@ export default function UserAdminPanel({ role }: { role: AppRole }) {
 
       {message && <p className="text-sm text-green-700" role="status">{message}</p>}
       {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+      {generatedLink && (
+        <section className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-medium text-amber-900">Ny invitasjonslenke</p>
+          <p className="mt-1 text-xs leading-5 text-amber-800">Send denne lenken til brukeren. Den kan brukes én gang.</p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <input value={generatedLink} readOnly aria-label="Ny invitasjonslenke" className="min-w-0 flex-1 rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs text-zinc-700" />
+            <button type="button" onClick={() => void copyGeneratedLink()} className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-medium text-amber-900 hover:bg-amber-100">
+              Kopier lenke
+            </button>
+          </div>
+        </section>
+      )}
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="border-b border-zinc-200 px-5 py-4">
@@ -156,6 +207,11 @@ export default function UserAdminPanel({ role }: { role: AppRole }) {
                     <select value={user.role} onChange={(event) => void updateUser(user.id, { role: event.target.value as AppRole }).catch((cause) => setError(cause instanceof Error ? cause.message : 'Brukeren kunne ikke endres.'))} className="rounded-lg border border-zinc-300 px-2 py-1.5 text-xs text-zinc-700">
                       {Object.entries(ROLE_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                     </select>
+                  )}
+                  {!user.confirmed && user.email && (
+                    <button type="button" onClick={() => void resendInvitation(user)} disabled={resendingUserId === user.id} className="rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50">
+                      {resendingUserId === user.id ? 'Sender …' : 'Send ny invitasjon'}
+                    </button>
                   )}
                   <button type="button" onClick={() => void updateUser(user.id, { active: !user.active }).catch((cause) => setError(cause instanceof Error ? cause.message : 'Brukeren kunne ikke endres.'))} className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50">
                     {user.active ? 'Deaktiver' : 'Aktiver'}
