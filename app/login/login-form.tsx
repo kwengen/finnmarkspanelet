@@ -29,8 +29,8 @@ export default function LoginForm({ next }: { next: string }) {
         try {
           const supabase = createBrowserSupabaseClient()
           const { error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
+            access_token: accessToken!,
+            refresh_token: refreshToken!,
           })
           if (sessionError) throw sessionError
           window.history.replaceState(null, '', window.location.pathname + window.location.search)
