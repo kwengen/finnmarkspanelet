@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+
+const EXPIRED_INVITE_MESSAGE = 'Invitasjonslenken har gått ut eller er allerede brukt. Be administratoren om å sende en ny invitasjon.'
 
 export default function LoginForm({ next }: { next: string }) {
   const [email, setEmail] = useState('')
@@ -8,6 +10,22 @@ export default function LoginForm({ next }: { next: string }) {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+    const errorCode = fragment.get('error_code')
+    const description = fragment.get('error_description')?.toLowerCase() ?? ''
+    const isExpiredInvite = errorCode === 'otp_expired'
+      || description.includes('expired')
+      || description.includes('invalid')
+
+    if (isExpiredInvite) {
+      setError(EXPIRED_INVITE_MESSAGE)
+      window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    }
+  }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
