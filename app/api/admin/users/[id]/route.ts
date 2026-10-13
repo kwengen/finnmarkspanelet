@@ -85,7 +85,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Brukeren mangler e-postadresse.' }, { status: 400 })
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || new URL(request.url).origin
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, '') || 'https://finnmarkspanelet.vercel.app'
     const redirectTo = siteUrl + '/auth/callback?next=/sett-passord'
 
     if (action === 'reset-password') {
