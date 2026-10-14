@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAuthServerClient } from '@/lib/supabase/auth-server'
 import { createServiceClient } from '@/lib/supabase/server'
-
-function siteUrl(request: Request): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://finnmarkspanelet.vercel.app').replace(/\/$/, '')
-}
+import { getSiteUrl } from '@/lib/site-url'
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}))
@@ -33,7 +30,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${siteUrl(request)}/auth/callback` },
+      options: { emailRedirectTo: `${getSiteUrl()}/auth/callback` },
     })
     if (error) {
       return NextResponse.json({ error: 'Kontoen kan ikke opprettes. Prøv å logge inn eller be om en ny invitasjon.' }, { status: 409 })
