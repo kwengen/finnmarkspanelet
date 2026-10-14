@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { isIdentity, requireApiRole, type AppRole } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getSiteUrl } from '@/lib/site-url'
 
 const ROLES: readonly AppRole[] = ['superadministrator', 'administrator', 'bruker']
 
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Brukeren mangler e-postadresse.' }, { status: 400 })
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, '') || 'https://finnmarkspanelet.vercel.app'
+    const siteUrl = getSiteUrl()
     const redirectTo = siteUrl + '/auth/callback?next=/sett-passord'
 
     if (action === 'reset-password') {
