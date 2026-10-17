@@ -611,6 +611,7 @@ details.tableview[open] > summary::before { content: "▾"; }
   box-shadow: 0 5px 18px rgba(43, 31, 27, 0.06);
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
+.strategy-tile[data-strategy-searchable][hidden] { display: none !important; }
 .strategy-tile:hover {
   border-color: #cdbbb5;
   box-shadow: 0 9px 24px rgba(43, 31, 27, 0.10);
@@ -3060,15 +3061,16 @@ function renderStrategi(host) {
     responses.filter(response => searchableText(response).includes(normalizeSearchText(keyword))).length,
   ]));
 
-  const filtered = responses.filter(response => {
+  const filteredByControls = responses.filter(response => {
     const text = searchableText(response);
     if (sourceFilter !== "all" && response.source !== sourceFilter) return false;
     if (municipalityFilter !== "all" && !text.includes(normalizeSearchText(municipalityFilter))) return false;
     if (selectedKeywords.length && !selectedKeywords.some(keyword =>
       text.includes(normalizeSearchText(keyword)))) return false;
-    if (query && !text.includes(query)) return false;
     return true;
   });
+  const filtered = filteredByControls.filter(response =>
+    !query || searchableText(response).includes(query));
 
   const dateFormatter = new Intl.DateTimeFormat("nb-NO", {
     day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
@@ -3091,15 +3093,16 @@ function renderStrategi(host) {
     ? `${selectedKeywords.length} nøkkelord valgt`
     : "Alle nøkkelord";
 
-  const resultItems = filtered.map(response => {
+  const resultItems = filteredByControls.map(response => {
     const sourceTitle = sourceById.get(response.source)?.title || response.source;
     const parts = strategyResponseParts(response.text);
     const question = String(response.question || "").trim();
     const localLag = String(response.localLag || "").trim();
+    const matchesQuery = !query || searchableText(response).includes(query);
     const originLabel = response.row
       ? `Regnearkrad ${response.row}`
       : `Padlet-side ${response.page}`;
-    return `<article class="strategy-tile">
+    return `<article class="strategy-tile" data-strategy-searchable="${escapeHTML(searchableText(response))}"${matchesQuery ? "" : " hidden"}>
       <div class="strategy-tile-head">
         <div class="strategy-tile-heading">
           <h3 class="strategy-tile-title">${escapeHTML(parts.title)}</h3>
@@ -3147,10 +3150,10 @@ function renderStrategi(host) {
         <span class="strategy-filter-note">Vises uten sortering, i opprinnelig rekkefølge.</span>
       </div>
       <div class="strategy-results-head">
-        <p class="strategy-count" role="status" aria-live="polite">Viser ${filtered.length} av ${responses.length} svar</p>
+        <p class="strategy-count" data-strategy-count data-strategy-total="${responses.length}" role="status" aria-live="polite">Viser ${filtered.length} av ${responses.length} svar</p>
       </div>
       ${resultItems
-        ? `<div class="strategy-tiles" aria-label="Svar fra Strategikonferansen">${resultItems}</div>`
+        ? `<div class="strategy-tiles" aria-label="Svar fra Strategikonferansen">${resultItems}</div><div class="empty" data-strategy-empty${filtered.length ? " hidden" : ""}>Ingen svar passer til søket og filtrene.</div>`
         : '<div class="empty">Ingen svar passer til søket og filtrene.</div>'}
     </section>
   </div>`;
@@ -3473,7 +3476,6 @@ function render() {
 
 /* Hendelser — én delegert lytter for hele siden. */
 let strategySearchTimer = null;
-let strategySearchCaret = null;
 
 document.addEventListener("click", ev => {
   const t = ev.target.closest("button");
@@ -3565,20 +3567,25 @@ document.addEventListener("input", ev => {
   if (key !== "strategyQuery") return;
 
   state.strategyQuery = input.value;
-  strategySearchCaret = input.selectionStart;
   if (strategySearchTimer !== null) window.clearTimeout(strategySearchTimer);
   strategySearchTimer = window.setTimeout(() => {
     strategySearchTimer = null;
     const host = mainEl.querySelector('[data-panel="strategi"]');
     if (!host) return;
-    renderStrategi(host);
-    syncShareUrl();
-    const next = host.querySelector('[data-strategy-filter="strategyQuery"]');
-    if (next) {
-      next.focus();
-      const position = strategySearchCaret == null ? next.value.length : Math.min(strategySearchCaret, next.value.length);
-      next.setSelectionRange(position, position);
+    const query = normalizeSearchText(state.strategyQuery.trim());
+    const cards = [...host.querySelectorAll('[data-strategy-searchable]')];
+    let visibleCount = 0;
+    for (const card of cards) {
+      const matches = !query || card.dataset.strategySearchable.includes(query);
+      card.hidden = !matches;
+      if (matches) visibleCount += 1;
     }
+    const count = host.querySelector('[data-strategy-count]');
+    const total = Number(count?.dataset.strategyTotal ?? cards.length);
+    if (count) count.textContent = `Viser ${visibleCount} av ${total} svar`;
+    const empty = host.querySelector('[data-strategy-empty]');
+    if (empty) empty.hidden = visibleCount !== 0;
+    syncShareUrl();
   }, 250);
 });
 
