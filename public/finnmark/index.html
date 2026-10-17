@@ -3032,7 +3032,18 @@ function renderStrategi(host) {
   const sources = STRATEGIKONFERANSE.sources;
   const responses = STRATEGIKONFERANSE.responses;
   const sourceById = new Map(sources.map(source => [source.id, source]));
+  const discussionQuestions = [...new Set(responses
+    .filter(response => response.source === "refleksjonsverktoy" && String(response.question || "").trim())
+    .map(response => String(response.question).trim()))];
+  const questionToken = /^question:(\d+)$/.exec(String(state.strategySource || ""));
+  const questionIndex = questionToken ? Number(questionToken[1]) : -1;
+  const questionFilter = Number.isInteger(questionIndex) && discussionQuestions[questionIndex]
+    ? discussionQuestions[questionIndex]
+    : "";
   const sourceFilter = sourceById.has(state.strategySource) ? state.strategySource : "all";
+  const discussionFilter = questionFilter
+    ? `question:${questionIndex}`
+    : sourceFilter;
   const municipalities = REGIONS
     .filter(region => region.key !== TOTAL_KEY)
     .map(region => region.navn)
@@ -3052,6 +3063,10 @@ function renderStrategi(host) {
     source.id,
     responses.filter(response => response.source === source.id).length,
   ]));
+  const questionCounts = new Map(discussionQuestions.map(question => [
+    question,
+    responses.filter(response => response.source === "refleksjonsverktoy" && String(response.question || "").trim() === question).length,
+  ]));
   const municipalityCounts = new Map(municipalities.map(municipality => [
     municipality,
     responses.filter(response => searchableText(response).includes(normalizeSearchText(municipality))).length,
@@ -3064,6 +3079,7 @@ function renderStrategi(host) {
   const filteredByControls = responses.filter(response => {
     const text = searchableText(response);
     if (sourceFilter !== "all" && response.source !== sourceFilter) return false;
+    if (questionFilter && (response.source !== "refleksjonsverktoy" || String(response.question || "").trim() !== questionFilter)) return false;
     if (municipalityFilter !== "all" && !text.includes(normalizeSearchText(municipalityFilter))) return false;
     if (selectedKeywords.length && !selectedKeywords.some(keyword =>
       text.includes(normalizeSearchText(keyword)))) return false;
@@ -3075,9 +3091,12 @@ function renderStrategi(host) {
   const dateFormatter = new Intl.DateTimeFormat("nb-NO", {
     day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
-  const sourceOptions = [
-    `<option value="all"${sourceFilter === "all" ? " selected" : ""}>Alle arbeidsøkter (${responses.length})</option>`,
-    ...sources.map(source => `<option value="${escapeHTML(source.id)}"${sourceFilter === source.id ? " selected" : ""}>${escapeHTML(source.title)} (${sourceCounts.get(source.id)})</option>`),
+  const discussionOptions = [
+    `<option value="all"${discussionFilter === "all" ? " selected" : ""}>Alle diskusjonsområder (${responses.length})</option>`,
+    `<optgroup label="Arbeidsøkter">${sources.map(source => `<option value="${escapeHTML(source.id)}"${discussionFilter === source.id ? " selected" : ""}>${escapeHTML(source.title)} (${sourceCounts.get(source.id)})</option>`).join("")}</optgroup>`,
+    discussionQuestions.length
+      ? `<optgroup label="Spørsmål fra refleksjonsverktøyet">${discussionQuestions.map((question, index) => `<option value="question:${index}"${discussionFilter === `question:${index}` ? " selected" : ""}>Spørsmål ${index + 1}: ${escapeHTML(question)} (${questionCounts.get(question)})</option>`).join("")}</optgroup>`
+      : "",
   ].join("");
   const municipalityOptions = [
     `<option value="all"${municipalityFilter === "all" ? " selected" : ""}>Alle kommuner</option>`,
@@ -3126,8 +3145,8 @@ function renderStrategi(host) {
       <div class="strategy-filters">
         <div class="field"><label class="field-label" for="strategySearch">Søk i svarene</label>
           <input id="strategySearch" type="search" autocomplete="off" placeholder="Søk etter tema, sted eller formulering" value="${escapeHTML(state.strategyQuery)}" data-strategy-filter="strategyQuery"></div>
-        <div class="field"><label class="field-label" for="strategySource">Arbeidsøkt</label>
-          <select id="strategySource" data-strategy-filter="strategySource" aria-label="Arbeidsøkt">${sourceOptions}</select></div>
+        <div class="field"><label class="field-label" for="strategySource">Diskusjonsområde</label>
+          <select id="strategySource" data-strategy-filter="strategySource" aria-label="Diskusjonsområde">${discussionOptions}</select></div>
         <div class="field"><label class="field-label" for="strategyMunicipality">Kommune nevnt</label>
           <select id="strategyMunicipality" data-strategy-filter="strategyMunicipality" aria-label="Filtrer på kommune som er nevnt">${municipalityOptions}</select></div>
       </div>
