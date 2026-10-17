@@ -3472,6 +3472,9 @@ function render() {
 }
 
 /* Hendelser — én delegert lytter for hele siden. */
+let strategySearchTimer = null;
+let strategySearchCaret = null;
+
 document.addEventListener("click", ev => {
   const t = ev.target.closest("button");
   if (!t) return;
@@ -3556,22 +3559,27 @@ document.addEventListener("click", ev => {
 });
 
 document.addEventListener("input", ev => {
-  const input = ev.target;
+  const input = ev.target instanceof HTMLInputElement ? ev.target : null;
+  if (!input) return;
   const key = input.dataset.strategyFilter;
   if (key !== "strategyQuery") return;
 
-  const caret = input.selectionStart;
   state.strategyQuery = input.value;
-  const host = mainEl.querySelector('[data-panel="strategi"]');
-  if (!host) return;
-  renderStrategi(host);
-  syncShareUrl();
-  const next = host.querySelector('[data-strategy-filter="strategyQuery"]');
-  if (next) {
-    next.focus();
-    const position = caret == null ? next.value.length : Math.min(caret, next.value.length);
-    next.setSelectionRange(position, position);
-  }
+  strategySearchCaret = input.selectionStart;
+  if (strategySearchTimer !== null) window.clearTimeout(strategySearchTimer);
+  strategySearchTimer = window.setTimeout(() => {
+    strategySearchTimer = null;
+    const host = mainEl.querySelector('[data-panel="strategi"]');
+    if (!host) return;
+    renderStrategi(host);
+    syncShareUrl();
+    const next = host.querySelector('[data-strategy-filter="strategyQuery"]');
+    if (next) {
+      next.focus();
+      const position = strategySearchCaret == null ? next.value.length : Math.min(strategySearchCaret, next.value.length);
+      next.setSelectionRange(position, position);
+    }
+  }, 250);
 });
 
 document.addEventListener("change", ev => {
