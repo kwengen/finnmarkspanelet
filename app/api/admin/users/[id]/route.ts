@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { isIdentity, requireApiRole, type AppRole } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getSiteUrl } from '@/lib/site-url'
 
 const ROLES: readonly AppRole[] = ['superadministrator', 'administrator', 'bruker']
 
@@ -63,6 +64,89 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   } catch (error) {
     console.error('Kunne ikke endre bruker', error)
     return NextResponse.json({ error: 'Brukeren kunne ikke endres.' }, { status: 500 })
+  }
+}
+
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const access = await requireApiRole(request, ['superadministrator', 'administrator'])
+  if (!isIdentity(access)) return access
+  const { id } = await params
+  const body = await request.json().catch(() => ({}))
+  const action = body?.action === 'reset-password' ? 'reset-password' : 'resend-invite'
+
+  try {
+    const service = await createServiceClient()
+    const { data: userResult, error: userError } = await service.auth.admin.getUserById(id)
+    if (userError || !userResult.user) {
+      return NextResponse.json({ error: 'Brukeren ble ikke funnet.' }, { status: 404 })
+    }
+
+    const user = userResult.user
+    if (!user.email) {
+      return NextResponse.json({ error: 'Brukeren mangler e-postadresse.' }, { status: 400 })
+    }
+
+    const siteUrl = getSiteUrl()
+    const redirectTo = siteUrl + '/auth/callback?next=/sett-passord'
+
+    if (action === 'reset-password') {
+      if (!user.email_confirmed_at) {
+        return NextResponse.json({
+          error: 'Brukeren har ikke aktivert kontoen ennå. Send en ny invitasjon i stedet.',
+        }, { status: 400 })
+      }
+
+      const { error: resetError } = await service.auth.resetPasswordForEmail(user.email, {
+        redirectTo,
+      })
+      if (resetError) {
+        return NextResponse.json({ error: 'Passordresettingslenken kunne ikke sendes.' }, { status: 400 })
+      }
+      return NextResponse.json({ ok: true, sent: true })
+    }
+
+    if (user.email_confirmed_at) {
+      return NextResponse.json({
+        error: 'Denne brukeren har allerede aktivert kontoen. Send passordlenke i stedet.',
+      }, { status: 400 })
+    }
+
+    const currentRole = await rolleFor(service, id)
+    if (!currentRole) return NextResponse.json({ error: 'Brukeren har ingen gyldig rolle.' }, { status: 404 })
+    if (access.role === 'administrator' && currentRole !== 'bruker') {
+      return NextResponse.json({ error: 'Administratorer kan bare sende nye invitasjoner til vanlige brukere.' }, { status: 403 })
+    }
+
+    const { error: resendError } = await service.auth.resend({
+      type: 'signup',
+      email: user.email,
+      options: { emailRedirectTo: redirectTo },
+    })
+
+    if (!resendError) return NextResponse.json({ ok: true, sent: true })
+
+    // Enkelte Supabase-oppsett støtter ikke resend av en invitasjonstype.
+    // Generer da en ny engangslenke uten å slette eller endre brukeren.
+    const { data: linkData, error: linkError } = await service.auth.admin.generateLink({
+      type: 'invite',
+      email: user.email,
+      options: { redirectTo },
+    })
+    const actionLink = linkData?.properties?.action_link
+    if (linkError || !actionLink) {
+      return NextResponse.json({
+        error: 'Ny invitasjon kunne ikke sendes. Be administratoren prøve igjen, eller opprett en ny invitasjon til brukeren.',
+      }, { status: 400 })
+    }
+
+    return NextResponse.json({ ok: true, sent: false, actionLink })
+  } catch (error) {
+    console.error(action === 'reset-password' ? 'Kunne ikke sende passordresetting' : 'Kunne ikke sende ny invitasjon', error)
+    return NextResponse.json({
+      error: action === 'reset-password'
+        ? 'Passordresettingslenken kunne ikke sendes.'
+        : 'Den nye invitasjonen kunne ikke sendes.',
+    }, { status: 500 })
   }
 }
 
