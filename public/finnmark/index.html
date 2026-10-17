@@ -482,7 +482,9 @@ details.tableview[open] > summary::before { content: "▾"; }
 }
 .strategy-kanban-card[open] > summary::after { content: "−"; }
 .strategy-card-author { display: block; padding-right: 16px; font-size: 12px; font-weight: 700; }
+.strategy-card-local-lag { display: block; margin-top: 3px; color: var(--accent-text); font-size: 10px; font-weight: 600; letter-spacing: .02em; }
 .strategy-card-date { display: block; margin-top: 3px; font-family: var(--mono); font-size: 10px; color: var(--ink-muted); }
+.strategy-card-question { display: block; margin-top: 8px; color: var(--ink-muted); font-size: 11px; line-height: 1.35; }
 .strategy-card-preview {
   display: -webkit-box; overflow: hidden; margin: 8px 0 0;
   -webkit-box-orient: vertical; -webkit-line-clamp: 4;
@@ -511,9 +513,11 @@ details.tableview[open] > summary::before { content: "▾"; }
 }
 .strategy-response[open] > summary::before { content: "▾"; }
 .strategy-response .response-author { font-size: 13px; font-weight: 600; }
+.strategy-response .response-local-lag { color: var(--accent-text); font-size: 11px; font-weight: 600; }
 .strategy-response .response-source { font-size: 11.5px; color: var(--accent-text); }
 .strategy-response time { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); }
 .strategy-response .response-body { padding: 0 12px 12px 31px; }
+.strategy-response .response-question { margin: 0 0 9px; color: var(--ink-muted); font-size: 11.5px; line-height: 1.4; }
 .strategy-response .response-text { margin: 0; font-size: 13px; line-height: 1.55; white-space: normal; }
 .strategy-response .response-meta {
   display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;
@@ -610,7 +614,7 @@ details.tableview[open] > summary::before { content: "▾"; }
 <script>
 "use strict";
 
-const STRATEGIKONFERANSE = window.STRATEGIKONFERANSE_DATA || { sources: [], responses: [] };
+let STRATEGIKONFERANSE = window.STRATEGIKONFERANSE_DATA || { sources: [], responses: [] };
 const escapeHTML = value => String(value ?? "").replace(/[&<>\"']/g, ch => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;",
 }[ch]));
@@ -641,6 +645,22 @@ async function initAuthBar() {
 async function loggUt() {
   await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
   window.location.assign("/login");
+}
+
+async function hentPrivateStrategikonferanse() {
+  try {
+    const response = await fetch("/api/strategikonferanse", { cache: "no-store" });
+    if (!response.ok) return;
+    const data = await response.json();
+    const sources = Array.isArray(data.sources) ? data.sources : [];
+    const responses = Array.isArray(data.responses) ? data.responses : [];
+    STRATEGIKONFERANSE = {
+      sources: [...STRATEGIKONFERANSE.sources, ...sources],
+      responses: [...STRATEGIKONFERANSE.responses, ...responses],
+    };
+  } catch (error) {
+    console.warn("Strategikonferansedata kunne ikke lastes", error);
+  }
 }
 
 void initAuthBar();
@@ -711,7 +731,10 @@ const VIS_KOMMUNEOKONOMI = true;
    er det denne funksjonen som blir overflødig. */
 async function start() {
   const temaer = VIS_KOMMUNEOKONOMI ? SSB_TEMAER : SSB_TEMAER.filter((t) => t !== "okonomi");
-  const { ut: live } = await hentLiveSSB(temaer);
+  const [{ ut: live }] = await Promise.all([
+    hentLiveSSB(temaer),
+    hentPrivateStrategikonferanse(),
+  ]);
   const SSB = live;
   document.getElementById("lasteskjerm")?.remove();
 
@@ -2658,7 +2681,7 @@ function renderStrategi(host) {
     if (state.strategyAuthor !== "all" && response.author !== state.strategyAuthor) return false;
     if (!query) return true;
     const sourceTitle = sourceById.get(response.source)?.title || response.source;
-    return [response.author, sourceTitle, response.text]
+    return [response.author, response.localLag, response.question, sourceTitle, response.text]
       .join(" ")
       .toLocaleLowerCase("nb-NO")
       .includes(query);
@@ -2685,14 +2708,18 @@ function renderStrategi(host) {
   const visibleSources = sources.filter(source => sourceFilter === "all" || source.id === sourceFilter);
   const strategyCard = response => {
     const sourceTitle = sourceById.get(response.source)?.title || response.source;
+    const sourceMeta = response.page
+      ? `Padlet-side ${response.page}`
+      : response.id.startsWith("refleksjonsverktoy-") ? `Regnearkrad ${response.id.split("-").pop()}` : "";
     return `<details class="strategy-kanban-card">
       <summary>
-        <span class="strategy-card-author">${escapeHTML(response.author)}</span>
+        <span class="strategy-card-author">${escapeHTML(response.author)}${response.localLag ? `<span class="strategy-card-local-lag">Lokallag: ${escapeHTML(response.localLag)}</span>` : ""}</span>
         <time class="strategy-card-date" datetime="${escapeHTML(response.submittedAt)}">${escapeHTML(dateFormatter.format(new Date(response.submittedAt)))}</time>
+        ${response.question ? `<span class="strategy-card-question">${escapeHTML(response.question)}</span>` : ""}
         <span class="strategy-card-preview">${strategyTextHTML(response.text)}</span>
       </summary>
       <div class="strategy-card-body">
-        <div class="strategy-card-meta"><span>${escapeHTML(sourceTitle)}</span><span>Padlet-side ${response.page}</span></div>
+        <div class="strategy-card-meta"><span>${escapeHTML(sourceTitle)}</span>${sourceMeta ? `<span>${escapeHTML(sourceMeta)}</span>` : ""}</div>
       </div>
     </details>`;
   };
@@ -2700,13 +2727,14 @@ function renderStrategi(host) {
     const sourceTitle = sourceById.get(response.source)?.title || response.source;
     return `<details class="strategy-response">
       <summary>
-        <span><span class="response-author">${escapeHTML(response.author)}</span>
+        <span><span class="response-author">${escapeHTML(response.author)}${response.localLag ? ` <span class="response-local-lag">· ${escapeHTML(response.localLag)}</span>` : ""}</span>
           <span class="response-source"> · ${escapeHTML(sourceTitle)}</span></span>
         <time datetime="${escapeHTML(response.submittedAt)}">${escapeHTML(dateFormatter.format(new Date(response.submittedAt)))}</time>
       </summary>
       <div class="response-body">
+        ${response.question ? `<p class="response-question">${escapeHTML(response.question)}</p>` : ""}
         <p class="response-text">${strategyTextHTML(response.text)}</p>
-        <div class="response-meta"><span>${escapeHTML(sourceTitle)}</span><span>Padlet-side ${response.page}</span></div>
+        <div class="response-meta"><span>${escapeHTML(sourceTitle)}</span>${response.page ? `<span>Padlet-side ${response.page}</span>` : response.id.startsWith("refleksjonsverktoy-") ? `<span>Regnearkrad ${escapeHTML(response.id.split("-").pop())}</span>` : ""}</div>
       </div>
     </details>`;
   }).join("");
