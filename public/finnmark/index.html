@@ -764,6 +764,12 @@ details.tableview[open] > summary::before { content: "▾"; }
   font-size: 11px;
   font-weight: 650;
 }
+.strategy-tile-question {
+  margin-top: 6px;
+  color: var(--ink-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
 .strategy-tile-text {
   display: block;
   color: var(--ink);
@@ -860,7 +866,7 @@ details.tableview[open] > summary::before { content: "▾"; }
 <script>
 "use strict";
 
-const STRATEGIKONFERANSE = window.STRATEGIKONFERANSE_DATA || { sources: [], responses: [] };
+let STRATEGIKONFERANSE = window.STRATEGIKONFERANSE_DATA || { sources: [], responses: [] };
 const escapeHTML = value => String(value ?? "").replace(/[&<>\"']/g, ch => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;",
 }[ch]));
@@ -1001,6 +1007,18 @@ async function fetchWithTimeout(input, init = {}, timeoutMs = SSB_FETCH_TIMEOUT_
   }
 }
 
+async function hentPrivateStrategikonferanse() {
+  try {
+    const response = await fetchWithTimeout("/api/strategikonferanse", { cache: "no-store" });
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data || !Array.isArray(data.sources) || !Array.isArray(data.responses)) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 /* Kommuneøkonomi skal kun vises for innloggede — se «FANER» lenger ned der
    selve fanen skjules. Vi lar rett og slett være å SPØRRE om temaet for
    anonyme besøkende her, i stedet for å hente det og skjule feilen: en
@@ -1042,7 +1060,20 @@ const VIS_KOMMUNEOKONOMI = true;
    er det denne funksjonen som blir overflødig. */
 async function start() {
   const temaer = VIS_KOMMUNEOKONOMI ? SSB_TEMAER : SSB_TEMAER.filter((t) => t !== "okonomi");
-  const { ut: live } = await hentLiveSSB(temaer);
+  const [{ ut: live }, privateStrategy] = await Promise.all([
+    hentLiveSSB(temaer),
+    hentPrivateStrategikonferanse(),
+  ]);
+  if (privateStrategy) {
+    const existingSourceIds = new Set(STRATEGIKONFERANSE.sources.map(source => source.id));
+    for (const source of privateStrategy.sources) {
+      if (!existingSourceIds.has(source.id)) STRATEGIKONFERANSE.sources.push(source);
+    }
+    const existingResponseIds = new Set(STRATEGIKONFERANSE.responses.map(response => response.id));
+    for (const response of privateStrategy.responses) {
+      if (!existingResponseIds.has(response.id)) STRATEGIKONFERANSE.responses.push(response);
+    }
+  }
   const SSB = live;
   document.getElementById("lasteskjerm")?.remove();
 
@@ -2988,7 +3019,7 @@ function renderStrategi(host) {
 
   const searchableText = response => {
     const sourceTitle = sourceById.get(response.source)?.title || response.source;
-    return normalizeSearchText([response.author, sourceTitle, response.text].join(" "));
+    return normalizeSearchText([response.author, response.question, sourceTitle, response.text].join(" "));
   };
   const sourceCounts = new Map(sources.map(source => [
     source.id,
@@ -3037,19 +3068,24 @@ function renderStrategi(host) {
   const resultItems = filtered.map(response => {
     const sourceTitle = sourceById.get(response.source)?.title || response.source;
     const parts = strategyResponseParts(response.text);
+    const question = String(response.question || "").trim();
+    const originLabel = response.row
+      ? `Regnearkrad ${response.row}`
+      : `Padlet-side ${response.page}`;
     return `<article class="strategy-tile">
       <div class="strategy-tile-head">
         <div class="strategy-tile-heading">
           <h3 class="strategy-tile-title">${escapeHTML(parts.title)}</h3>
           <div class="strategy-tile-author">Innsender: ${escapeHTML(response.author)}</div>
           <div class="strategy-tile-source">${escapeHTML(sourceTitle)}</div>
+          ${question ? `<div class="strategy-tile-question">Spørsmål: ${escapeHTML(question)}</div>` : ""}
         </div>
         <time class="strategy-tile-date" datetime="${escapeHTML(response.submittedAt)}">${escapeHTML(dateFormatter.format(new Date(response.submittedAt)))}</time>
       </div>
       <div class="strategy-tile-text">${strategyFormatResponseBody(parts.lines, parts.listHint)}</div>
       <div class="strategy-tile-meta">
         <span>Arbeidsøkt: ${escapeHTML(sourceTitle)}</span>
-        <span>Padlet-side ${response.page}</span>
+        <span>${escapeHTML(originLabel)}</span>
       </div>
     </article>`;
   }).join("");
